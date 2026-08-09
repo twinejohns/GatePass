@@ -1,25 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Move, Type, Eye, Save, Image as ImageIcon, Sparkles, Sliders, CheckCircle2, Hash } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Move, Type, Eye, Save, Image as ImageIcon, Sparkles, Sliders, CheckCircle2, Hash, Lock, Unlock, Maximize2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 
 export default function InvitationTemplateStudio({ eventId }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const canvasRef = useRef(null);
 
   const [template, setTemplate] = useState({
     cardImageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800',
     fields: {
-      name: { x: 40, y: 90, fontSize: 22, color: '#ffffff', enabled: true },
-      delegateId: { x: 40, y: 125, fontSize: 16, color: '#f59e0b', enabled: true },
-      company: { x: 40, y: 155, fontSize: 15, color: '#38bdf8', enabled: true },
-      tier: { x: 40, y: 185, fontSize: 13, color: '#a855f7', enabled: true },
-      qrCode: { x: 480, y: 70, width: 140, height: 140, enabled: true }
+      name: { x: 4, y: 22, fontSize: 22, color: '#ffffff', enabled: true },
+      delegateId: { x: 4, y: 32, fontSize: 16, color: '#f59e0b', enabled: true },
+      company: { x: 4, y: 39, fontSize: 15, color: '#38bdf8', enabled: true },
+      tier: { x: 4, y: 46, fontSize: 13, color: '#a855f7', enabled: true },
+      qrCode: { x: 68, y: 18, width: 22, height: 22, lockAspect: true, enabled: true }
     }
   });
 
-  const [selectedField, setSelectedField] = useState('delegateId');
+  const [selectedField, setSelectedField] = useState('qrCode');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
+  const [imageDimensions, setImageDimensions] = useState({ width: 800, height: 450 });
 
   useEffect(() => {
     loadTemplate();
@@ -37,6 +40,14 @@ export default function InvitationTemplateStudio({ eventId }) {
     }
   };
 
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      setAspectRatio(naturalWidth / naturalHeight);
+      setImageDimensions({ width: naturalWidth, height: naturalHeight });
+    }
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -49,6 +60,39 @@ export default function InvitationTemplateStudio({ eventId }) {
   };
 
   const handleFieldChange = (fieldKey, prop, val) => {
+    const currentQr = template.fields.qrCode || {};
+
+    if (fieldKey === 'qrCode') {
+      if (prop === 'width' && currentQr.lockAspect) {
+        setTemplate({
+          ...template,
+          fields: {
+            ...template.fields,
+            qrCode: {
+              ...currentQr,
+              width: val,
+              height: val
+            }
+          }
+        });
+        return;
+      }
+      if (prop === 'height' && currentQr.lockAspect) {
+        setTemplate({
+          ...template,
+          fields: {
+            ...template.fields,
+            qrCode: {
+              ...currentQr,
+              width: val,
+              height: val
+            }
+          }
+        });
+        return;
+      }
+    }
+
     setTemplate({
       ...template,
       fields: {
@@ -56,6 +100,22 @@ export default function InvitationTemplateStudio({ eventId }) {
         [fieldKey]: {
           ...template.fields[fieldKey],
           [prop]: val
+        }
+      }
+    });
+  };
+
+  const toggleQrAspectLock = () => {
+    const currentQr = template.fields.qrCode || {};
+    const nextLock = !currentQr.lockAspect;
+    setTemplate({
+      ...template,
+      fields: {
+        ...template.fields,
+        qrCode: {
+          ...currentQr,
+          lockAspect: nextLock,
+          height: nextLock ? currentQr.width : currentQr.height
         }
       }
     });
@@ -88,9 +148,9 @@ export default function InvitationTemplateStudio({ eventId }) {
             <ImageIcon className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold">Custom PDF Invitation Card & QR Overlay Studio</h2>
+            <h2 className="text-base font-bold">Custom PDF Invitation Card Studio</h2>
             <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Upload custom invitation artwork and position Delegate ID, Name, Company, Tier & QR Code overlays
+              Aspect-ratio responsive canvas for uploaded invitation artwork with lockable QR dimensions
             </p>
           </div>
         </div>
@@ -106,11 +166,11 @@ export default function InvitationTemplateStudio({ eventId }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Visual Interactive Canvas Preview (2 Cols) */}
+        {/* Responsive Interactive Canvas Preview (2 Cols) */}
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Eye className="w-4 h-4 text-cyan-400" /> Interactive Overlay Canvas Preview
+              <Eye className="w-4 h-4 text-cyan-400" /> Card Canvas ({imageDimensions.width} × {imageDimensions.height}px)
             </span>
             <label className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow">
               <Upload className="w-3.5 h-3.5" /> Upload Custom PDF/Card Artwork
@@ -118,26 +178,32 @@ export default function InvitationTemplateStudio({ eventId }) {
             </label>
           </div>
 
-          <div className="relative w-full aspect-[16/9] bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center">
+          {/* Dynamic Aspect Ratio Container */}
+          <div 
+            ref={canvasRef}
+            style={{ aspectRatio: `${aspectRatio}` }}
+            className="relative w-full bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center transition-all duration-300"
+          >
             
             {/* Background Artwork */}
             <img 
               src={template.cardImageUrl} 
               alt="Invitation Artwork" 
-              className="w-full h-full object-cover"
+              onLoad={handleImageLoad}
+              className="w-full h-full object-contain"
             />
 
             {/* Overlay Field: Name */}
             {template.fields.name?.enabled && (
               <div
                 style={{
-                  left: `${template.fields.name.x}px`,
-                  top: `${template.fields.name.y}px`,
+                  left: `${template.fields.name.x}%`,
+                  top: `${template.fields.name.y}%`,
                   fontSize: `${template.fields.name.fontSize}px`,
                   color: template.fields.name.color
                 }}
                 onClick={() => setSelectedField('name')}
-                className={`absolute cursor-pointer font-extrabold transition-all px-2 py-0.5 rounded border ${
+                className={`absolute cursor-pointer font-extrabold transition-all px-2 py-0.5 rounded border whitespace-nowrap ${
                   selectedField === 'name' ? 'border-indigo-400 bg-indigo-500/30 ring-2 ring-indigo-400' : 'border-transparent hover:border-white/40'
                 }`}
               >
@@ -149,13 +215,13 @@ export default function InvitationTemplateStudio({ eventId }) {
             {template.fields.delegateId?.enabled && (
               <div
                 style={{
-                  left: `${template.fields.delegateId.x}px`,
-                  top: `${template.fields.delegateId.y}px`,
+                  left: `${template.fields.delegateId.x}%`,
+                  top: `${template.fields.delegateId.y}%`,
                   fontSize: `${template.fields.delegateId.fontSize}px`,
                   color: template.fields.delegateId.color
                 }}
                 onClick={() => setSelectedField('delegateId')}
-                className={`absolute cursor-pointer font-mono font-extrabold transition-all px-2 py-0.5 rounded border ${
+                className={`absolute cursor-pointer font-mono font-extrabold transition-all px-2 py-0.5 rounded border whitespace-nowrap ${
                   selectedField === 'delegateId' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-amber-400/40'
                 }`}
               >
@@ -167,13 +233,13 @@ export default function InvitationTemplateStudio({ eventId }) {
             {template.fields.company?.enabled && (
               <div
                 style={{
-                  left: `${template.fields.company.x}px`,
-                  top: `${template.fields.company.y}px`,
+                  left: `${template.fields.company.x}%`,
+                  top: `${template.fields.company.y}%`,
                   fontSize: `${template.fields.company.fontSize}px`,
                   color: template.fields.company.color
                 }}
                 onClick={() => setSelectedField('company')}
-                className={`absolute cursor-pointer font-semibold transition-all px-2 py-0.5 rounded border ${
+                className={`absolute cursor-pointer font-semibold transition-all px-2 py-0.5 rounded border whitespace-nowrap ${
                   selectedField === 'company' ? 'border-cyan-400 bg-cyan-500/30 ring-2 ring-cyan-400' : 'border-transparent hover:border-white/40'
                 }`}
               >
@@ -185,13 +251,13 @@ export default function InvitationTemplateStudio({ eventId }) {
             {template.fields.tier?.enabled && (
               <div
                 style={{
-                  left: `${template.fields.tier.x}px`,
-                  top: `${template.fields.tier.y}px`,
+                  left: `${template.fields.tier.x}%`,
+                  top: `${template.fields.tier.y}%`,
                   fontSize: `${template.fields.tier.fontSize}px`,
                   color: template.fields.tier.color
                 }}
                 onClick={() => setSelectedField('tier')}
-                className={`absolute cursor-pointer font-bold transition-all px-2 py-0.5 rounded border ${
+                className={`absolute cursor-pointer font-bold transition-all px-2 py-0.5 rounded border whitespace-nowrap ${
                   selectedField === 'tier' ? 'border-purple-400 bg-purple-500/30 ring-2 ring-purple-400' : 'border-transparent hover:border-white/40'
                 }`}
               >
@@ -203,10 +269,10 @@ export default function InvitationTemplateStudio({ eventId }) {
             {template.fields.qrCode?.enabled && (
               <div
                 style={{
-                  left: `${template.fields.qrCode.x}px`,
-                  top: `${template.fields.qrCode.y}px`,
-                  width: `${template.fields.qrCode.width}px`,
-                  height: `${template.fields.qrCode.height}px`
+                  left: `${template.fields.qrCode.x}%`,
+                  top: `${template.fields.qrCode.y}%`,
+                  width: `${template.fields.qrCode.width}%`,
+                  height: `${template.fields.qrCode.height}%`
                 }}
                 onClick={() => setSelectedField('qrCode')}
                 className={`absolute cursor-pointer bg-white p-2 rounded-xl shadow-2xl border flex items-center justify-center ${
@@ -224,7 +290,7 @@ export default function InvitationTemplateStudio({ eventId }) {
           </div>
         </div>
 
-        {/* Field Positioning Controls Panel (1 Col) */}
+        {/* Field Controls Panel (1 Col) */}
         <div className={`p-5 rounded-2xl border space-y-4 ${
           isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
         }`}>
@@ -233,16 +299,16 @@ export default function InvitationTemplateStudio({ eventId }) {
             <h3 className="text-sm font-bold">Field Overlay Controls</h3>
           </div>
 
-          {/* Select Target Field */}
+          {/* Target Field Select */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-400">Select Field to Position:</label>
             <div className="grid grid-cols-2 gap-1.5 text-xs font-semibold">
               {[
+                { key: 'qrCode', label: '📱 Encrypted QR' },
                 { key: 'delegateId', label: '🆔 Delegate ID' },
                 { key: 'name', label: '👤 Attendee Name' },
                 { key: 'company', label: '🏢 Company' },
-                { key: 'tier', label: '🏷️ Ticket Tier' },
-                { key: 'qrCode', label: '📱 Encrypted QR' }
+                { key: 'tier', label: '🏷️ Ticket Tier' }
               ].map(f => (
                 <button
                   key={f.key}
@@ -276,13 +342,13 @@ export default function InvitationTemplateStudio({ eventId }) {
               {/* X Position */}
               <div className="space-y-1">
                 <div className="flex justify-between font-semibold">
-                  <span>X Coordinate (Horizontal):</span>
-                  <span className="font-mono text-indigo-400">{currentFieldConfig.x || 0}px</span>
+                  <span>Horizontal Position (X %):</span>
+                  <span className="font-mono text-indigo-400">{currentFieldConfig.x || 0}%</span>
                 </div>
                 <input
                   type="range"
                   min="0"
-                  max="700"
+                  max="90"
                   value={currentFieldConfig.x || 0}
                   onChange={(e) => handleFieldChange(selectedField, 'x', parseInt(e.target.value, 10))}
                   className="w-full accent-amber-500"
@@ -292,20 +358,20 @@ export default function InvitationTemplateStudio({ eventId }) {
               {/* Y Position */}
               <div className="space-y-1">
                 <div className="flex justify-between font-semibold">
-                  <span>Y Coordinate (Vertical):</span>
-                  <span className="font-mono text-indigo-400">{currentFieldConfig.y || 0}px</span>
+                  <span>Vertical Position (Y %):</span>
+                  <span className="font-mono text-indigo-400">{currentFieldConfig.y || 0}%</span>
                 </div>
                 <input
                   type="range"
                   min="0"
-                  max="400"
+                  max="90"
                   value={currentFieldConfig.y || 0}
                   onChange={(e) => handleFieldChange(selectedField, 'y', parseInt(e.target.value, 10))}
                   className="w-full accent-amber-500"
                 />
               </div>
 
-              {/* Text specific or QR specific size controls */}
+              {/* Text vs QR Specific Controls */}
               {selectedField !== 'qrCode' ? (
                 <>
                   <div className="space-y-1">
@@ -334,23 +400,63 @@ export default function InvitationTemplateStudio({ eventId }) {
                   </div>
                 </>
               ) : (
-                <div className="space-y-1">
-                  <div className="flex justify-between font-semibold">
-                    <span>QR Code Box Width & Height:</span>
-                    <span className="font-mono text-indigo-400">{currentFieldConfig.width || 120}px</span>
+                <div className="space-y-3 bg-slate-900/90 p-3.5 rounded-xl border border-slate-800">
+                  
+                  {/* Aspect Ratio Lock Toggle */}
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                      {currentFieldConfig.lockAspect ? <Lock className="w-4 h-4 text-emerald-400" /> : <Unlock className="w-4 h-4 text-rose-400" />}
+                      <span>Lock Aspect Ratio (1:1)</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={toggleQrAspectLock}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                        currentFieldConfig.lockAspect 
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500' 
+                          : 'bg-rose-500/20 text-rose-300 border-rose-500'
+                      }`}
+                    >
+                      {currentFieldConfig.lockAspect ? 'Locked' : 'Independent W/H'}
+                    </button>
                   </div>
-                  <input
-                    type="range"
-                    min="60"
-                    max="250"
-                    value={currentFieldConfig.width || 120}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      handleFieldChange('qrCode', 'width', val);
-                      handleFieldChange('qrCode', 'height', val);
-                    }}
-                    className="w-full accent-amber-500"
-                  />
+
+                  {/* QR Width Slider */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-semibold">
+                      <span>QR Width (%):</span>
+                      <span className="font-mono text-indigo-400">{currentFieldConfig.width || 20}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="8"
+                      max="60"
+                      value={currentFieldConfig.width || 20}
+                      onChange={(e) => handleFieldChange('qrCode', 'width', parseInt(e.target.value, 10))}
+                      className="w-full accent-amber-500"
+                    />
+                  </div>
+
+                  {/* QR Height Slider */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-semibold">
+                      <span>QR Height (%):</span>
+                      <span className="font-mono text-indigo-400">{currentFieldConfig.height || 20}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="8"
+                      max="60"
+                      disabled={currentFieldConfig.lockAspect}
+                      value={currentFieldConfig.height || 20}
+                      onChange={(e) => handleFieldChange('qrCode', 'height', parseInt(e.target.value, 10))}
+                      className="w-full accent-amber-500 disabled:opacity-40"
+                    />
+                    {currentFieldConfig.lockAspect && (
+                      <p className="text-[10px] text-emerald-400 italic">Height locked to match Width (Square 1:1 QR code)</p>
+                    )}
+                  </div>
+
                 </div>
               )}
 

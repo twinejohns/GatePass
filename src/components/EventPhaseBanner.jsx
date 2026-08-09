@@ -1,7 +1,7 @@
 import React from 'react';
-import { Beaker, Play, Lock, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
+import { Beaker, Play, Lock, ShieldAlert, CheckCircle2, Info, Edit3, Settings } from 'lucide-react';
 
-export default function EventPhaseBanner({ event, currentPhase, onPhaseChange, isManager }) {
+export default function EventPhaseBanner({ event, currentPhase, onPhaseChange, isManager, onEditEventDetails }) {
   const phases = [
     {
       key: 'PRE_EVENT_TEST',
@@ -50,7 +50,20 @@ export default function EventPhaseBanner({ event, currentPhase, onPhaseChange, i
                 {currentObj.label}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-white mt-0.5">{event?.name || 'GatePass Event'}</h3>
+
+            <div className="flex items-center space-x-2 mt-0.5">
+              <h3 className="text-lg font-bold text-white">{event?.name || 'GatePass Event'}</h3>
+              {isManager && (
+                <button
+                  onClick={onEditEventDetails}
+                  className="px-2 py-0.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white font-bold text-[11px] border border-indigo-500/40 inline-flex items-center gap-1 transition-all"
+                  title="Edit Event Details, Venue, Capacity & Gates"
+                >
+                  <Edit3 className="w-3 h-3" /> Edit Event
+                </button>
+              )}
+            </div>
+
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
               {currentObj.description}
             </p>

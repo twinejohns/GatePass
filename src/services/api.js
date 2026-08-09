@@ -24,6 +24,10 @@ export const api = {
   // Events & Phase
   getEvents: () => fetchJson('/events'),
   getEvent: (id) => fetchJson(`/events/${id}`),
+  updateEventDetails: (id, data) => fetchJson(`/events/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
   updateEventPhase: (id, phase) => fetchJson(`/events/${id}/phase`, {
     method: 'POST',
     body: JSON.stringify({ phase })

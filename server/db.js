@@ -256,6 +256,17 @@ class Database {
     return this.data.auditLogs.filter(l => l.eventId === eventId); 
   }
 
+  // Event Details Mutator
+  updateEventDetails(eventId, updateObj) {
+    const evt = this.getEvent(eventId);
+    if (evt) {
+      Object.assign(evt, updateObj);
+      this.save();
+      return evt;
+    }
+    return null;
+  }
+
   // User Gate Allocation Mutator
   updateUserGate(userId, gateId) {
     const user = this.getUser(userId);

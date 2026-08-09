@@ -67,6 +67,19 @@ router.get('/events/:id', (req, res) => {
   res.json({ success: true, event, analytics });
 });
 
+// Manager Update Event Details
+router.put('/events/:id', (req, res) => {
+  const updatedEvent = db.updateEventDetails(req.params.id, req.body);
+  if (!updatedEvent) return res.status(404).json({ success: false, error: 'Event not found' });
+
+  wsManager.broadcast('EVENT_UPDATED', {
+    event: updatedEvent,
+    analytics: calculateAnalytics(req.params.id)
+  });
+
+  res.json({ success: true, event: updatedEvent });
+});
+
 router.post('/events/:id/phase', (req, res) => {
   const { phase } = req.body;
   const updatedEvent = db.updateEventPhase(req.params.id, phase);
@@ -430,7 +443,6 @@ router.post('/users', (req, res) => {
   res.json({ success: true, user: newUser });
 });
 
-// Manager Gate Allocation Endpoint
 router.put('/users/:id/gate', (req, res) => {
   const { gateId } = req.body;
   const updatedUser = db.updateUserGate(req.params.id, gateId);

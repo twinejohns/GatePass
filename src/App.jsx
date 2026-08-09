@@ -8,6 +8,7 @@ import BulkAttendeeUpload from './components/BulkAttendeeUpload';
 import DigitalTicketModal from './components/DigitalTicketModal';
 import ReissueTicketModal from './components/ReissueTicketModal';
 import AddEditAttendeeModal from './components/AddEditAttendeeModal';
+import EditEventModal from './components/EditEventModal';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { api } from './services/api';
 import { socketService } from './services/socket';
@@ -33,6 +34,7 @@ function MainApp() {
 
   // Modals state
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
   const [activePassData, setActivePassData] = useState(null);
   const [reissueTargetAttendee, setReissueTargetAttendee] = useState(null);
   const [addEditModalData, setAddEditModalData] = useState(null);
@@ -63,6 +65,13 @@ function MainApp() {
       }
     });
 
+    const unsubEventUpdate = socketService.on('EVENT_UPDATED', (data) => {
+      if (data.event?.id === currentEvent?.id) {
+        setCurrentEvent(data.event);
+        if (data.analytics) setAnalytics(data.analytics);
+      }
+    });
+
     const unsubReissue = socketService.on('TICKET_REISSUED', (data) => {
       if (currentEvent?.id) {
         loadAttendees(currentEvent.id);
@@ -89,6 +98,7 @@ function MainApp() {
       unsubStatus();
       unsubScan();
       unsubPhase();
+      unsubEventUpdate();
       unsubReissue();
       unsubAttendees();
       unsubUser();
@@ -164,6 +174,20 @@ function MainApp() {
       if (res.success) setCurrentEvent(res.event);
     } catch (err) {
       alert(err.message);
+    }
+  };
+
+  const handleSaveEventDetails = async (eventData) => {
+    if (!currentEvent) return;
+    try {
+      const res = await api.updateEventDetails(currentEvent.id, eventData);
+      if (res.success) {
+        setCurrentEvent(res.event);
+        const analyticsRes = await api.getAnalytics(currentEvent.id);
+        if (analyticsRes.success) setAnalytics(analyticsRes.analytics);
+      }
+    } catch (err) {
+      alert('Failed to update event: ' + err.message);
     }
   };
 
@@ -322,12 +346,13 @@ function MainApp() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <main className="p-6 space-y-6 max-w-7xl w-full mx-auto">
           
-          {/* Phase Banner */}
+          {/* Phase Banner with Edit Event Button */}
           <EventPhaseBanner
             event={currentEvent}
             currentPhase={currentEvent?.phase || 'LIVE_GATES_OPEN'}
             onPhaseChange={handlePhaseChange}
             isManager={currentUser?.role === 'Manager'}
+            onEditEventDetails={() => setShowEditEventModal(true)}
           />
 
           {/* Module Content */}
@@ -358,6 +383,14 @@ function MainApp() {
       </div>
 
       {/* Modals */}
+      {showEditEventModal && (
+        <EditEventModal
+          event={currentEvent}
+          onSave={handleSaveEventDetails}
+          onClose={() => setShowEditEventModal(false)}
+        />
+      )}
+
       {showBulkModal && (
         <BulkAttendeeUpload
           onImport={handleBulkImport}

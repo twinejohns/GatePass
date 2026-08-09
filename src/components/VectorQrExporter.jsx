@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileCode, CheckCircle2, Sparkles, Printer, Copy, Check, QrCode, FileArchive, Loader2 } from 'lucide-react';
+import { Download, FileCode, CheckCircle2, Sparkles, Printer, Copy, Check, QrCode, FileArchive, Loader2, Hash } from 'lucide-react';
 import JSZip from 'jszip';
 import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -31,11 +31,12 @@ export default function VectorQrExporter({ eventId }) {
   };
 
   const downloadSingleSvgFile = (asset) => {
+    const delegateIdStr = asset.delegateId || asset.id;
     const blob = new Blob([asset.svgData], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${asset.name.replace(/\s+/g, '_')}_Vector_QR.svg`;
+    link.download = `${delegateIdStr}_${asset.name.replace(/\s+/g, '_')}_Vector_QR.svg`;
     link.click();
   };
 
@@ -54,8 +55,9 @@ export default function VectorQrExporter({ eventId }) {
       const folder = zip.folder("GatePass_Vector_QR_Codes");
 
       vectorAssets.forEach((asset) => {
+        const delegateIdStr = asset.delegateId || asset.id;
         const sanitizedName = asset.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-        const filename = `${sanitizedName}_${asset.tier.replace(/[^a-zA-Z0-9_-]/g, '_')}_v${asset.id}.svg`;
+        const filename = `${delegateIdStr}_${sanitizedName}_${asset.tier.replace(/[^a-zA-Z0-9_-]/g, '_')}.svg`;
         folder.file(filename, asset.svgData);
       });
 
@@ -87,7 +89,7 @@ export default function VectorQrExporter({ eventId }) {
           <div>
             <h2 className="text-base font-bold">Bulk Vector QR Code Asset Exporter</h2>
             <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Export resolution-independent vector SVG/PDF QR codes bundled in a single ZIP file for invitation printers
+              Export resolution-independent vector SVG/PDF QR codes with Delegate IDs for invitation printers
             </p>
           </div>
         </div>
@@ -116,53 +118,61 @@ export default function VectorQrExporter({ eventId }) {
       ) : (
         /* Grid-Fitted Cards Layout */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {vectorAssets.map(asset => (
-            <div key={asset.id} className={`p-4 rounded-2xl border flex flex-col justify-between space-y-3 transition-all ${
-              isDark ? 'bg-slate-950 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-            }`}>
-              
-              {/* Header Info */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold truncate pr-1">{asset.name}</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded font-mono bg-blue-500/20 text-blue-300 font-semibold flex-shrink-0">
-                    SVG
-                  </span>
+          {vectorAssets.map(asset => {
+            const delegateIdStr = asset.delegateId || asset.id;
+            return (
+              <div key={asset.id} className={`p-4 rounded-2xl border flex flex-col justify-between space-y-3 transition-all ${
+                isDark ? 'bg-slate-950 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+              }`}>
+                
+                {/* Header Info */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold truncate pr-1">{asset.name}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-extrabold flex-shrink-0 flex items-center gap-0.5">
+                      <Hash className="w-2.5 h-2.5" /> {delegateIdStr}
+                    </span>
+                  </div>
+                  <div className="text-xs text-indigo-400 font-semibold truncate">{asset.company || asset.email}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{asset.tier}</div>
                 </div>
-                <div className="text-xs text-indigo-400 font-semibold truncate">{asset.company || asset.email}</div>
-                <div className="text-[11px] text-slate-400 truncate">{asset.tier}</div>
+
+                {/* Constrained SVG Container Box */}
+                <div className="bg-white p-3 rounded-2xl w-full max-w-[180px] aspect-square mx-auto flex items-center justify-center border border-slate-300 shadow-inner overflow-hidden">
+                  <div 
+                    dangerouslySetInnerHTML={{ __html: asset.svgData }} 
+                    className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full [&>svg]:object-contain" 
+                  />
+                </div>
+
+                {/* Delegate ID Banner under QR Code */}
+                <div className="bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg text-center font-mono font-bold text-[11px] text-amber-400 truncate">
+                  Delegate ID: {delegateIdStr}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-800/40 text-xs">
+                  <button
+                    onClick={() => downloadSingleSvgFile(asset)}
+                    className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download SVG
+                  </button>
+
+                  <button
+                    onClick={() => copySvgText(asset)}
+                    className={`p-2 rounded-xl border text-xs font-semibold ${
+                      copiedId === asset.id ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700'
+                    }`}
+                    title="Copy Raw SVG XML Code"
+                  >
+                    {copiedId === asset.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+
               </div>
-
-              {/* Constrained SVG Container Box */}
-              <div className="bg-white p-3 rounded-2xl w-full max-w-[180px] aspect-square mx-auto flex items-center justify-center border border-slate-300 shadow-inner overflow-hidden">
-                <div 
-                  dangerouslySetInnerHTML={{ __html: asset.svgData }} 
-                  className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full [&>svg]:object-contain" 
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-2 border-t border-slate-800/40 text-xs">
-                <button
-                  onClick={() => downloadSingleSvgFile(asset)}
-                  className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow"
-                >
-                  <Download className="w-3.5 h-3.5" /> Download SVG
-                </button>
-
-                <button
-                  onClick={() => copySvgText(asset)}
-                  className={`p-2 rounded-xl border text-xs font-semibold ${
-                    copiedId === asset.id ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700'
-                  }`}
-                  title="Copy Raw SVG XML Code"
-                >
-                  {copiedId === asset.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -7,6 +7,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DB_FILE = path.join(__dirname, 'database.json');
 
+function formatDelegateId(pattern, seq, tier = '') {
+  const paddedSeq = String(seq).padStart(4, '0');
+  const tierPrefix = tier ? tier.substring(0, 3).toUpperCase() : 'DEL';
+  return pattern
+    .replace('{SEQ}', paddedSeq)
+    .replace('{TIER}', tierPrefix);
+}
+
 // Default initial state
 const defaultData = {
   users: [
@@ -56,6 +64,8 @@ const defaultData = {
       capacity: 1500,
       phase: 'LIVE_GATES_OPEN', // PRE_EVENT_TEST | LIVE_GATES_OPEN | CLOSED
       bannerUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200',
+      idFormatPattern: 'ATS-2026-{SEQ}', // Manager ID Pattern: e.g. ATS-2026-0001
+      nextSeqNumber: 106,
       gates: [
         { id: 'gate_a', name: 'Gate A - Main Entrance' },
         { id: 'gate_b', name: 'Gate B - North Concourse' },
@@ -77,6 +87,7 @@ const defaultData = {
       showPhone: true,
       showEmail: true,
       showCompany: true,
+      showDelegateId: true,
       footerNote: 'Present this pass at designated gate. Non-transferable once checked in.'
     }
   ],
@@ -85,16 +96,18 @@ const defaultData = {
       eventId: 'evt_tech_2026',
       cardImageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800',
       fields: {
-        name: { x: 40, y: 100, fontSize: 24, color: '#ffffff', enabled: true },
-        company: { x: 40, y: 140, fontSize: 16, color: '#38bdf8', enabled: true },
-        tier: { x: 40, y: 170, fontSize: 14, color: '#a855f7', enabled: true },
-        qrCode: { x: 480, y: 80, width: 140, height: 140, enabled: true }
+        name: { x: 40, y: 90, fontSize: 22, color: '#ffffff', enabled: true },
+        delegateId: { x: 40, y: 125, fontSize: 16, color: '#f59e0b', enabled: true },
+        company: { x: 40, y: 155, fontSize: 15, color: '#38bdf8', enabled: true },
+        tier: { x: 40, y: 185, fontSize: 13, color: '#a855f7', enabled: true },
+        qrCode: { x: 480, y: 70, width: 140, height: 140, enabled: true }
       }
     }
   ],
   attendees: [
     {
       id: 'att_101',
+      delegateId: 'ATS-2026-0001',
       eventId: 'evt_tech_2026',
       name: 'Alexander Wright',
       email: 'alexander.wright@techcorp.com',
@@ -111,6 +124,7 @@ const defaultData = {
     },
     {
       id: 'att_102',
+      delegateId: 'ATS-2026-0002',
       eventId: 'evt_tech_2026',
       name: 'Sophia Chen',
       email: 'sophia.chen@nexusai.io',
@@ -127,6 +141,7 @@ const defaultData = {
     },
     {
       id: 'att_103',
+      delegateId: 'ATS-2026-0003',
       eventId: 'evt_tech_2026',
       name: 'Marcus Brody',
       email: 'marcus.brody@cyberfort.net',
@@ -143,6 +158,7 @@ const defaultData = {
     },
     {
       id: 'att_104',
+      delegateId: 'ATS-2026-0004',
       eventId: 'evt_tech_2026',
       name: 'Isabella Rodriguez',
       email: 'isabella.r@futuremedia.org',
@@ -159,6 +175,7 @@ const defaultData = {
     },
     {
       id: 'att_105',
+      delegateId: 'ATS-2026-0005',
       eventId: 'evt_tech_2026',
       name: 'David Vance',
       email: 'david.vance@cloudnative.co',
@@ -180,6 +197,7 @@ const defaultData = {
       id: 'scn_1',
       eventId: 'evt_tech_2026',
       attendeeId: 'att_102',
+      delegateId: 'ATS-2026-0002',
       attendeeName: 'Sophia Chen',
       tier: 'General Admission',
       company: 'Nexus AI Labs',
@@ -196,6 +214,7 @@ const defaultData = {
       id: 'aud_1',
       eventId: 'evt_tech_2026',
       attendeeId: 'att_101',
+      delegateId: 'ATS-2026-0001',
       attendeeName: 'Alexander Wright',
       action: 'REISSUE_QR',
       reason: 'Lost phone - requested clean QR refresh',
@@ -248,7 +267,7 @@ class Database {
   getAttendees(eventId) { 
     return this.data.attendees.filter(a => a.eventId === eventId); 
   }
-  getAttendee(id) { return this.data.attendees.find(a => a.id === id); }
+  getAttendee(id) { return this.data.attendees.find(a => a.id === id || a.delegateId === id); }
   getScans(eventId) { 
     return this.data.scans.filter(s => s.eventId === eventId); 
   }
@@ -316,9 +335,20 @@ class Database {
   }
 
   addSingleAttendee(eventId, attendeeObj) {
+    const evt = this.getEvent(eventId);
+    const pattern = evt?.idFormatPattern || 'ATS-2026-{SEQ}';
+    const seq = evt?.nextSeqNumber || (this.data.attendees.length + 1);
+
+    if (evt) {
+      evt.nextSeqNumber = seq + 1;
+    }
+
     const id = `att_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const delegateId = attendeeObj.delegateId || formatDelegateId(pattern, seq, attendeeObj.tier);
+
     const newAttendee = {
       id,
+      delegateId,
       eventId,
       name: attendeeObj.name || 'Anonymous',
       email: attendeeObj.email || '',
@@ -349,6 +379,10 @@ class Database {
   }
 
   addAttendeesBulk(eventId, attendeesArray) {
+    const evt = this.getEvent(eventId);
+    const pattern = evt?.idFormatPattern || 'ATS-2026-{SEQ}';
+    let seq = evt?.nextSeqNumber || (this.data.attendees.length + 1);
+
     const created = [];
     attendeesArray.forEach(a => {
       const existing = a.email ? this.data.attendees.find(x => x.eventId === eventId && x.email.toLowerCase() === a.email.toLowerCase()) : null;
@@ -357,11 +391,16 @@ class Database {
         existing.phone = a.phone || existing.phone;
         existing.tier = a.tier || existing.tier;
         existing.company = a.company || existing.company;
+        if (a.delegateId) existing.delegateId = a.delegateId;
         created.push(existing);
       } else {
         const id = `att_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        const delegateId = a.delegateId || a.id || formatDelegateId(pattern, seq, a.tier);
+        seq += 1;
+
         const newAtt = {
           id,
+          delegateId,
           eventId,
           name: a.name || 'Attendee',
           email: a.email || '',
@@ -380,6 +419,10 @@ class Database {
         created.push(newAtt);
       }
     });
+
+    if (evt) {
+      evt.nextSeqNumber = seq;
+    }
 
     this.save();
     return created;
@@ -413,6 +456,7 @@ class Database {
       id: `aud_${Date.now()}`,
       eventId: attendee.eventId,
       attendeeId: attendee.id,
+      delegateId: attendee.delegateId,
       attendeeName: attendee.name,
       action: 'REISSUE_QR',
       reason: reason || 'Manager requested QR code reset',

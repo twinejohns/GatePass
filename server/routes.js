@@ -73,7 +73,7 @@ router.get('/events/:id', (req, res) => {
   res.json({ success: true, event, analytics });
 });
 
-// Manager Update Event Details
+// Manager Update Event Details & ID Format Pattern
 router.put('/events/:id', (req, res) => {
   const updatedEvent = db.updateEventDetails(req.params.id, req.body);
   if (!updatedEvent) return res.status(404).json({ success: false, error: 'Event not found' });
@@ -189,6 +189,7 @@ router.get('/events/:id/export-vector-qrs', async (req, res) => {
     }
     vectorAssets.push({
       id: att.id,
+      delegateId: att.delegateId || att.id,
       name: att.name,
       email: att.email,
       company: att.company,
@@ -290,6 +291,7 @@ router.post('/scan', (req, res) => {
     const scanLog = db.recordScan({
       eventId,
       attendeeId,
+      delegateId: attendee.delegateId,
       attendeeName: attendee.name,
       tier: attendee.tier,
       company: attendee.company,
@@ -315,6 +317,7 @@ router.post('/scan', (req, res) => {
     const scanLog = db.recordScan({
       eventId,
       attendeeId,
+      delegateId: attendee.delegateId,
       attendeeName: attendee.name,
       tier: attendee.tier,
       company: attendee.company,
@@ -340,6 +343,7 @@ router.post('/scan', (req, res) => {
     const scanLog = db.recordScan({
       eventId,
       attendeeId,
+      delegateId: attendee.delegateId,
       attendeeName: attendee.name,
       tier: attendee.tier,
       company: attendee.company,
@@ -365,6 +369,7 @@ router.post('/scan', (req, res) => {
     const scanLog = db.recordScan({
       eventId,
       attendeeId,
+      delegateId: attendee.delegateId,
       attendeeName: attendee.name,
       tier: attendee.tier,
       company: attendee.company,
@@ -395,6 +400,7 @@ router.post('/scan', (req, res) => {
   const scanLog = db.recordScan({
     eventId,
     attendeeId,
+    delegateId: attendee.delegateId,
     attendeeName: attendee.name,
     tier: attendee.tier,
     company: attendee.company,
@@ -413,7 +419,7 @@ router.post('/scan', (req, res) => {
   res.json({
     success: true,
     result: 'VALID_CHECKIN',
-    message: `✅ ACCESS GRANTED: Welcome ${attendee.name} (${attendee.company || attendee.tier})!`,
+    message: `✅ ACCESS GRANTED: Welcome ${attendee.name} (${attendee.company || attendee.tier})! [ID: ${attendee.delegateId || attendee.id}]`,
     attendee: updatedAttendee,
     scanLog,
     analytics

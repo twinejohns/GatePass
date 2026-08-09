@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Edit3, Save, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Calendar, MapPin, Edit3, Save, Plus, Trash2, Image as ImageIcon, Hash } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function EditEventModal({ event, onSave, onClose }) {
@@ -15,6 +15,7 @@ export default function EditEventModal({ event, onSave, onClose }) {
     endDate: '',
     capacity: 1000,
     bannerUrl: '',
+    idFormatPattern: 'ATS-2026-{SEQ}',
     gates: []
   });
 
@@ -29,6 +30,7 @@ export default function EditEventModal({ event, onSave, onClose }) {
         endDate: event.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : '',
         capacity: event.capacity || 1000,
         bannerUrl: event.bannerUrl || '',
+        idFormatPattern: event.idFormatPattern || 'ATS-2026-{SEQ}',
         gates: event.gates ? [...event.gates] : []
       });
     }
@@ -58,6 +60,11 @@ export default function EditEventModal({ event, onSave, onClose }) {
     onClose();
   };
 
+  // Live preview calculation for Delegate ID
+  const previewDelegateId = formData.idFormatPattern
+    .replace('{SEQ}', '0001')
+    .replace('{TIER}', 'VIP');
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
       <div className={`border rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto ${
@@ -71,9 +78,9 @@ export default function EditEventModal({ event, onSave, onClose }) {
               <Edit3 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold">Edit Event Details & Gates</h3>
+              <h3 className="text-base font-bold">Edit Event & Delegate ID Format</h3>
               <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Update event title, dates, venue, capacity, and entrance gate stations
+                Configure event title, venue, Delegate ID format pattern, and gate stations
               </p>
             </div>
           </div>
@@ -93,6 +100,30 @@ export default function EditEventModal({ event, onSave, onClose }) {
               }`}
               required
             />
+          </div>
+
+          {/* Delegate ID Format Pattern Generator */}
+          <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-indigo-950/40 border-indigo-500/30' : 'bg-indigo-50/60 border-indigo-200'}`}>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-bold text-indigo-400 flex items-center gap-1.5">
+                <Hash className="w-4 h-4" /> Delegate / Attendee ID Format Pattern
+              </label>
+              <span className="text-[11px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                Sample: {previewDelegateId}
+              </span>
+            </div>
+            <input
+              type="text"
+              value={formData.idFormatPattern}
+              onChange={(e) => setFormData({ ...formData, idFormatPattern: e.target.value })}
+              className={`w-full rounded-xl px-3 py-2 border font-mono text-xs focus:outline-none focus:border-indigo-500 ${
+                isDark ? 'bg-slate-950 border-slate-700 text-amber-300' : 'bg-white border-slate-300 text-indigo-900'
+              }`}
+              placeholder="e.g. ATS-2026-{SEQ} or DEL-{TIER}-{SEQ}"
+            />
+            <p className={`text-[11px] mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Use <code className="text-amber-400 font-bold">{'{SEQ}'}</code> for 4-digit sequence number (0001) or <code className="text-amber-400 font-bold">{'{TIER}'}</code> for ticket tier prefix.
+            </p>
           </div>
 
           <div>

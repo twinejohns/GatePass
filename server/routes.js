@@ -75,26 +75,36 @@ router.get('/events/:id', (req, res) => {
 
 // Manager Update Event Details & ID Format Pattern
 router.put('/events/:id', (req, res) => {
-  const updatedEvent = db.updateEventDetails(req.params.id, req.body);
-  if (!updatedEvent) return res.status(404).json({ success: false, error: 'Event not found' });
+  try {
+    const updatedEvent = db.updateEventDetails(req.params.id, req.body);
+    if (!updatedEvent) return res.status(404).json({ success: false, error: 'Event not found' });
 
-  wsManager.broadcast('EVENT_UPDATED', {
-    event: updatedEvent,
-    analytics: calculateAnalytics(req.params.id)
-  });
+    wsManager.broadcast('EVENT_UPDATED', {
+      event: updatedEvent,
+      analytics: calculateAnalytics(req.params.id)
+    });
 
-  res.json({ success: true, event: updatedEvent });
+    res.json({ success: true, event: updatedEvent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 router.post('/events/:id/phase', (req, res) => {
-  const { phase } = req.body;
-  const updatedEvent = db.updateEventPhase(req.params.id, phase);
-  wsManager.broadcast('PHASE_CHANGE_EVENT', {
-    eventId: req.params.id,
-    phase,
-    analytics: calculateAnalytics(req.params.id)
-  });
-  res.json({ success: true, event: updatedEvent });
+  try {
+    const { phase } = req.body;
+    const updatedEvent = db.updateEventPhase(req.params.id, phase);
+    wsManager.broadcast('PHASE_CHANGE_EVENT', {
+      eventId: req.params.id,
+      phase,
+      analytics: calculateAnalytics(req.params.id)
+    });
+    res.json({ success: true, event: updatedEvent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Templates
@@ -103,8 +113,13 @@ router.get('/events/:id/template', (req, res) => {
 });
 
 router.post('/events/:id/template', (req, res) => {
-  const savedTemplate = db.saveTicketTemplate({ eventId: req.params.id, ...req.body });
-  res.json({ success: true, template: savedTemplate });
+  try {
+    const savedTemplate = db.saveTicketTemplate({ eventId: req.params.id, ...req.body });
+    res.json({ success: true, template: savedTemplate });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Invitation Canvas Overlay Template
@@ -113,8 +128,13 @@ router.get('/events/:id/invitation-studio', (req, res) => {
 });
 
 router.post('/events/:id/invitation-studio', (req, res) => {
-  const saved = db.saveInvitationTemplate({ eventId: req.params.id, ...req.body });
-  res.json({ success: true, template: saved });
+  try {
+    const saved = db.saveInvitationTemplate({ eventId: req.params.id, ...req.body });
+    res.json({ success: true, template: saved });
+  } catch (err) {
+    console.error('Error saving invitation studio template:', err);
+    res.status(500).json({ success: false, error: 'Failed to save template: ' + err.message });
+  }
 });
 
 // Attendees CRUD
@@ -124,170 +144,310 @@ router.get('/events/:id/attendees', (req, res) => {
 
 // Add Single Attendee
 router.post('/events/:id/attendees', (req, res) => {
-  const newAttendee = db.addSingleAttendee(req.params.id, req.body);
-  wsManager.broadcast('ATTENDEES_UPDATED', {
-    eventId: req.params.id,
-    analytics: calculateAnalytics(req.params.id)
-  });
-  res.json({ success: true, attendee: newAttendee });
+  try {
+    const newAttendee = db.addSingleAttendee(req.params.id, req.body);
+    wsManager.broadcast('ATTENDEES_UPDATED', {
+      eventId: req.params.id,
+      analytics: calculateAnalytics(req.params.id)
+    });
+    res.json({ success: true, attendee: newAttendee });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Edit Attendee Record
 router.put('/attendees/:id', (req, res) => {
-  const updated = db.updateAttendee(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ success: false, error: 'Attendee not found' });
-  wsManager.broadcast('ATTENDEES_UPDATED', {
-    eventId: updated.eventId,
-    analytics: calculateAnalytics(updated.eventId)
-  });
-  res.json({ success: true, attendee: updated });
+  try {
+    const updated = db.updateAttendee(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ success: false, error: 'Attendee not found' });
+    wsManager.broadcast('ATTENDEES_UPDATED', {
+      eventId: updated.eventId,
+      analytics: calculateAnalytics(updated.eventId)
+    });
+    res.json({ success: true, attendee: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Bulk Import / Update
 router.post('/events/:id/attendees/bulk', (req, res) => {
-  const { attendees } = req.body;
-  const created = db.addAttendeesBulk(req.params.id, attendees);
-  wsManager.broadcast('ATTENDEES_UPDATED', {
-    eventId: req.params.id,
-    analytics: calculateAnalytics(req.params.id)
-  });
-  res.json({ success: true, importedCount: created.length, attendees: created });
+  try {
+    const { attendees } = req.body;
+    const created = db.addAttendeesBulk(req.params.id, attendees);
+    wsManager.broadcast('ATTENDEES_UPDATED', {
+      eventId: req.params.id,
+      analytics: calculateAnalytics(req.params.id)
+    });
+    res.json({ success: true, importedCount: created.length, attendees: created });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Bulk Email Pass Dispatcher
 router.post('/events/:id/send-emails-bulk', (req, res) => {
-  const { attendeeIds, subject } = req.body;
-  if (!Array.isArray(attendeeIds) || attendeeIds.length === 0) {
-    return res.status(400).json({ success: false, error: 'No attendees selected for email dispatch' });
+  try {
+    const { attendeeIds, subject } = req.body;
+    if (!Array.isArray(attendeeIds) || attendeeIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'No attendees selected for email dispatch' });
+    }
+
+    const updatedAttendees = db.markEmailsSent(attendeeIds);
+    wsManager.broadcast('ATTENDEES_UPDATED', {
+      eventId: req.params.id,
+      analytics: calculateAnalytics(req.params.id)
+    });
+
+    res.json({
+      success: true,
+      dispatchedCount: updatedAttendees.length,
+      message: `✉️ Bulk email dispatch complete! Sent ${updatedAttendees.length} digital passes.`
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  const updatedAttendees = db.markEmailsSent(attendeeIds);
-  wsManager.broadcast('ATTENDEES_UPDATED', {
-    eventId: req.params.id,
-    analytics: calculateAnalytics(req.params.id)
-  });
-
-  res.json({
-    success: true,
-    dispatchedCount: updatedAttendees.length,
-    message: `✉️ Bulk email dispatch complete! Sent ${updatedAttendees.length} digital passes.`
-  });
 });
 
 // Bulk Vector QR Code Asset Exporter
 router.get('/events/:id/export-vector-qrs', async (req, res) => {
-  const attendees = db.getAttendees(req.params.id);
-  const vectorAssets = [];
+  try {
+    const attendees = db.getAttendees(req.params.id);
+    const vectorAssets = [];
 
-  for (const att of attendees) {
-    const qrString = generateQrPayload(att.eventId, att.id, att.qrVersion);
-    let svgData = '';
-    try {
-      svgData = await QRCode.toString(qrString, { type: 'svg', margin: 2, width: 300 });
-    } catch (err) {
-      console.error(err);
+    for (const att of attendees) {
+      const qrString = generateQrPayload(att.eventId, att.id, att.qrVersion);
+      let svgData = '';
+      try {
+        svgData = await QRCode.toString(qrString, { type: 'svg', margin: 2, width: 300 });
+      } catch (err) {
+        console.error(err);
+      }
+      vectorAssets.push({
+        id: att.id,
+        delegateId: att.delegateId || att.id,
+        name: att.name,
+        email: att.email,
+        company: att.company,
+        tier: att.tier,
+        qrString,
+        svgData
+      });
     }
-    vectorAssets.push({
-      id: att.id,
-      delegateId: att.delegateId || att.id,
-      name: att.name,
-      email: att.email,
-      company: att.company,
-      tier: att.tier,
-      qrString,
-      svgData
-    });
-  }
 
-  res.json({ success: true, vectorAssets });
+    res.json({ success: true, vectorAssets });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Digital Pass Card
 router.get('/tickets/:attendeeId/pass', async (req, res) => {
-  const attendee = db.getAttendee(req.params.attendeeId);
-  if (!attendee) return res.status(404).json({ success: false, error: 'Attendee not found' });
-
-  const event = db.getEvent(attendee.eventId);
-  const template = db.getTicketTemplate(attendee.eventId);
-  const qrString = generateQrPayload(attendee.eventId, attendee.id, attendee.qrVersion);
-
-  let qrDataUrl = '';
   try {
-    qrDataUrl = await QRCode.toDataURL(qrString, {
-      errorCorrectionLevel: 'H',
-      margin: 2,
-      width: 400
+    const attendee = db.getAttendee(req.params.attendeeId);
+    if (!attendee) return res.status(404).json({ success: false, error: 'Attendee not found' });
+
+    const event = db.getEvent(attendee.eventId);
+    const template = db.getTicketTemplate(attendee.eventId);
+    const qrString = generateQrPayload(attendee.eventId, attendee.id, attendee.qrVersion);
+
+    let qrDataUrl = '';
+    try {
+      qrDataUrl = await QRCode.toDataURL(qrString, {
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 400
+      });
+    } catch (err) {
+      console.error(err);
+    }
+
+    res.json({
+      success: true,
+      pass: {
+        attendee,
+        event,
+        template,
+        qrString,
+        qrDataUrl
+      }
     });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  res.json({
-    success: true,
-    pass: {
-      attendee,
-      event,
-      template,
-      qrString,
-      qrDataUrl
-    }
-  });
 });
 
 // Scanner Verification Endpoint
 router.post('/scan', (req, res) => {
-  const { qrPayload, gateId, attendantName } = req.body;
-  if (!qrPayload) return res.status(400).json({ success: false, error: 'QR Payload required' });
+  try {
+    const { qrPayload, gateId, attendantName } = req.body;
+    if (!qrPayload) return res.status(400).json({ success: false, error: 'QR Payload required' });
 
-  const verification = verifyQrPayload(qrPayload);
-  if (!verification.valid) {
-    const scanLog = db.recordScan({
-      eventId: 'unknown',
-      attendeeId: null,
-      attendeeName: 'Unknown / Suspicious',
-      tier: 'N/A',
-      company: 'N/A',
-      attendantName: attendantName || 'Gate Scanner',
-      gateId: gateId || 'gate_a',
-      gateName: gateId || 'Gate Scanner',
-      result: verification.tampered ? 'TAMPERED_CODE' : 'MALFORMED_CODE',
-      phase: 'LIVE_GATES_OPEN',
-      note: verification.error
-    });
+    const verification = verifyQrPayload(qrPayload);
+    if (!verification.valid) {
+      const scanLog = db.recordScan({
+        eventId: 'unknown',
+        attendeeId: null,
+        attendeeName: 'Unknown / Suspicious',
+        tier: 'N/A',
+        company: 'N/A',
+        attendantName: attendantName || 'Gate Scanner',
+        gateId: gateId || 'gate_a',
+        gateName: gateId || 'Gate Scanner',
+        result: verification.tampered ? 'TAMPERED_CODE' : 'MALFORMED_CODE',
+        phase: 'LIVE_GATES_OPEN',
+        note: verification.error
+      });
 
-    wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog });
-    return res.json({
-      success: false,
-      result: verification.tampered ? 'TAMPERED_CODE' : 'MALFORMED_CODE',
-      error: verification.error,
-      scanLog
-    });
-  }
+      wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog });
+      return res.json({
+        success: false,
+        result: verification.tampered ? 'TAMPERED_CODE' : 'MALFORMED_CODE',
+        error: verification.error,
+        scanLog
+      });
+    }
 
-  const { eventId, attendeeId, version } = verification;
-  const event = db.getEvent(eventId);
-  const attendee = db.getAttendee(attendeeId);
+    const { eventId, attendeeId, version } = verification;
+    const event = db.getEvent(eventId);
+    const attendee = db.getAttendee(attendeeId);
 
-  if (!event || !attendee) {
-    const scanLog = db.recordScan({
-      eventId,
-      attendeeId,
-      attendeeName: 'Unregistered',
-      tier: 'N/A',
-      company: 'N/A',
-      attendantName: attendantName || 'Gate Scanner',
-      gateId: gateId || 'gate_a',
-      gateName: gateId || 'Gate Scanner',
-      result: 'NOT_FOUND',
-      phase: event?.phase || 'UNKNOWN'
-    });
-    wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog });
-    return res.json({ success: false, result: 'NOT_FOUND', error: 'Ticket record not found' });
-  }
+    if (!event || !attendee) {
+      const scanLog = db.recordScan({
+        eventId,
+        attendeeId,
+        attendeeName: 'Unregistered',
+        tier: 'N/A',
+        company: 'N/A',
+        attendantName: attendantName || 'Gate Scanner',
+        gateId: gateId || 'gate_a',
+        gateName: gateId || 'Gate Scanner',
+        result: 'NOT_FOUND',
+        phase: event?.phase || 'UNKNOWN'
+      });
+      wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog });
+      return res.json({ success: false, result: 'NOT_FOUND', error: 'Ticket record not found' });
+    }
 
-  const gateObj = (event.gates || []).find(g => g.id === gateId) || { name: gateId || 'Main Gate' };
+    const gateObj = (event.gates || []).find(g => g.id === gateId) || { name: gateId || 'Main Gate' };
 
-  if (event.phase === 'PRE_EVENT_TEST') {
+    if (event.phase === 'PRE_EVENT_TEST') {
+      const scanLog = db.recordScan({
+        eventId,
+        attendeeId,
+        delegateId: attendee.delegateId,
+        attendeeName: attendee.name,
+        tier: attendee.tier,
+        company: attendee.company,
+        attendantName: attendantName || 'Gate Scanner',
+        gateId: gateId || 'gate_a',
+        gateName: gateObj.name,
+        result: 'TEST_SCAN_OK',
+        phase: 'PRE_EVENT_TEST'
+      });
+
+      wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
+
+      return res.json({
+        success: true,
+        result: 'TEST_SCAN_OK',
+        message: '🧪 PRE-EVENT TEST PASSED: QR Code signature authentic! (No live check-in recorded)',
+        attendee,
+        scanLog
+      });
+    }
+
+    if (event.phase === 'CLOSED') {
+      const scanLog = db.recordScan({
+        eventId,
+        attendeeId,
+        delegateId: attendee.delegateId,
+        attendeeName: attendee.name,
+        tier: attendee.tier,
+        company: attendee.company,
+        attendantName: attendantName || 'Gate Scanner',
+        gateId: gateId || 'gate_a',
+        gateName: gateObj.name,
+        result: 'EXPIRED_EVENT',
+        phase: 'CLOSED'
+      });
+
+      wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
+
+      return res.json({
+        success: false,
+        result: 'EXPIRED_EVENT',
+        error: '🔴 EVENT IS CLOSED: Gates are no longer open for ticket validation.',
+        attendee,
+        scanLog
+      });
+    }
+
+    if (version < attendee.qrVersion) {
+      const scanLog = db.recordScan({
+        eventId,
+        attendeeId,
+        delegateId: attendee.delegateId,
+        attendeeName: attendee.name,
+        tier: attendee.tier,
+        company: attendee.company,
+        attendantName: attendantName || 'Gate Scanner',
+        gateId: gateId || 'gate_a',
+        gateName: gateObj.name,
+        result: 'REVOKED_CODE_REISSUED',
+        phase: event.phase
+      });
+
+      wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
+
+      return res.json({
+        success: false,
+        result: 'REVOKED_CODE_REISSUED',
+        error: `⚠️ REVOKED PASS: This QR code (v${version}) has been invalidated because a newer ticket (v${attendee.qrVersion}) was issued!`,
+        attendee,
+        scanLog
+      });
+    }
+
+    if (attendee.status === 'CHECKED_IN') {
+      const scanLog = db.recordScan({
+        eventId,
+        attendeeId,
+        delegateId: attendee.delegateId,
+        attendeeName: attendee.name,
+        tier: attendee.tier,
+        company: attendee.company,
+        attendantName: attendantName || 'Gate Scanner',
+        gateId: gateId || 'gate_a',
+        gateName: gateObj.name,
+        result: 'DUPLICATE_BLOCKED',
+        phase: event.phase
+      });
+
+      wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
+
+      return res.json({
+        success: false,
+        result: 'DUPLICATE_BLOCKED',
+        error: `⛔ DUPLICATE CHECK-IN BLOCKED: Ticket was already scanned at ${new Date(attendee.checkedInAt).toLocaleTimeString()} by ${attendee.checkedInBy || 'Gate Staff'}!`,
+        attendee,
+        originalCheckIn: {
+          timestamp: attendee.checkedInAt,
+          gate: attendee.checkedInGate,
+          attendant: attendee.checkedInBy
+        },
+        scanLog
+      });
+    }
+
+    // Valid Check-In
     const scanLog = db.recordScan({
       eventId,
       attendeeId,
@@ -295,150 +455,50 @@ router.post('/scan', (req, res) => {
       attendeeName: attendee.name,
       tier: attendee.tier,
       company: attendee.company,
-      attendantName: attendantName || 'Gate Scanner',
+      attendantName: attendantName || 'Gate Staff',
       gateId: gateId || 'gate_a',
       gateName: gateObj.name,
-      result: 'TEST_SCAN_OK',
-      phase: 'PRE_EVENT_TEST'
+      result: 'VALID_CHECKIN',
+      phase: event.phase
     });
 
-    wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
+    const updatedAttendee = db.getAttendee(attendeeId);
+    const analytics = calculateAnalytics(eventId);
 
-    return res.json({
+    wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics });
+
+    res.json({
       success: true,
-      result: 'TEST_SCAN_OK',
-      message: '🧪 PRE-EVENT TEST PASSED: QR Code signature authentic! (No live check-in recorded)',
-      attendee,
-      scanLog
+      result: 'VALID_CHECKIN',
+      message: `✅ ACCESS GRANTED: Welcome ${attendee.name} (${attendee.company || attendee.tier})! [ID: ${attendee.delegateId || attendee.id}]`,
+      attendee: updatedAttendee,
+      scanLog,
+      analytics
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  if (event.phase === 'CLOSED') {
-    const scanLog = db.recordScan({
-      eventId,
-      attendeeId,
-      delegateId: attendee.delegateId,
-      attendeeName: attendee.name,
-      tier: attendee.tier,
-      company: attendee.company,
-      attendantName: attendantName || 'Gate Scanner',
-      gateId: gateId || 'gate_a',
-      gateName: gateObj.name,
-      result: 'EXPIRED_EVENT',
-      phase: 'CLOSED'
-    });
-
-    wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
-
-    return res.json({
-      success: false,
-      result: 'EXPIRED_EVENT',
-      error: '🔴 EVENT IS CLOSED: Gates are no longer open for ticket validation.',
-      attendee,
-      scanLog
-    });
-  }
-
-  if (version < attendee.qrVersion) {
-    const scanLog = db.recordScan({
-      eventId,
-      attendeeId,
-      delegateId: attendee.delegateId,
-      attendeeName: attendee.name,
-      tier: attendee.tier,
-      company: attendee.company,
-      attendantName: attendantName || 'Gate Scanner',
-      gateId: gateId || 'gate_a',
-      gateName: gateObj.name,
-      result: 'REVOKED_CODE_REISSUED',
-      phase: event.phase
-    });
-
-    wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
-
-    return res.json({
-      success: false,
-      result: 'REVOKED_CODE_REISSUED',
-      error: `⚠️ REVOKED PASS: This QR code (v${version}) has been invalidated because a newer ticket (v${attendee.qrVersion}) was issued!`,
-      attendee,
-      scanLog
-    });
-  }
-
-  if (attendee.status === 'CHECKED_IN') {
-    const scanLog = db.recordScan({
-      eventId,
-      attendeeId,
-      delegateId: attendee.delegateId,
-      attendeeName: attendee.name,
-      tier: attendee.tier,
-      company: attendee.company,
-      attendantName: attendantName || 'Gate Scanner',
-      gateId: gateId || 'gate_a',
-      gateName: gateObj.name,
-      result: 'DUPLICATE_BLOCKED',
-      phase: event.phase
-    });
-
-    wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics: calculateAnalytics(eventId) });
-
-    return res.json({
-      success: false,
-      result: 'DUPLICATE_BLOCKED',
-      error: `⛔ DUPLICATE CHECK-IN BLOCKED: Ticket was already scanned at ${new Date(attendee.checkedInAt).toLocaleTimeString()} by ${attendee.checkedInBy || 'Gate Staff'}!`,
-      attendee,
-      originalCheckIn: {
-        timestamp: attendee.checkedInAt,
-        gate: attendee.checkedInGate,
-        attendant: attendee.checkedInBy
-      },
-      scanLog
-    });
-  }
-
-  // Valid Check-In
-  const scanLog = db.recordScan({
-    eventId,
-    attendeeId,
-    delegateId: attendee.delegateId,
-    attendeeName: attendee.name,
-    tier: attendee.tier,
-    company: attendee.company,
-    attendantName: attendantName || 'Gate Staff',
-    gateId: gateId || 'gate_a',
-    gateName: gateObj.name,
-    result: 'VALID_CHECKIN',
-    phase: event.phase
-  });
-
-  const updatedAttendee = db.getAttendee(attendeeId);
-  const analytics = calculateAnalytics(eventId);
-
-  wsManager.broadcast('LIVE_SCAN_EVENT', { scanLog, analytics });
-
-  res.json({
-    success: true,
-    result: 'VALID_CHECKIN',
-    message: `✅ ACCESS GRANTED: Welcome ${attendee.name} (${attendee.company || attendee.tier})! [ID: ${attendee.delegateId || attendee.id}]`,
-    attendee: updatedAttendee,
-    scanLog,
-    analytics
-  });
 });
 
 // Ticket Re-issuance
 router.post('/tickets/:attendeeId/reissue', (req, res) => {
-  const { managerName, reason } = req.body;
-  const result = db.reissueQrCode(req.params.attendeeId, managerName, reason);
-  if (!result) return res.status(404).json({ success: false, error: 'Attendee not found' });
+  try {
+    const { managerName, reason } = req.body;
+    const result = db.reissueQrCode(req.params.attendeeId, managerName, reason);
+    if (!result) return res.status(404).json({ success: false, error: 'Attendee not found' });
 
-  wsManager.broadcast('TICKET_REISSUED', {
-    attendee: result.attendee,
-    auditEntry: result.auditEntry,
-    analytics: calculateAnalytics(result.attendee.eventId)
-  });
+    wsManager.broadcast('TICKET_REISSUED', {
+      attendee: result.attendee,
+      auditEntry: result.auditEntry,
+      analytics: calculateAnalytics(result.attendee.eventId)
+    });
 
-  res.json({ success: true, ...result });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 router.get('/events/:id/audit-logs', (req, res) => {
@@ -451,21 +511,31 @@ router.get('/users', (req, res) => {
 });
 
 router.post('/users', (req, res) => {
-  const newUser = db.addUser(req.body);
-  res.json({ success: true, user: newUser });
+  try {
+    const newUser = db.addUser(req.body);
+    res.json({ success: true, user: newUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 router.put('/users/:id/gate', (req, res) => {
-  const { gateId } = req.body;
-  const updatedUser = db.updateUserGate(req.params.id, gateId);
-  if (!updatedUser) return res.status(404).json({ success: false, error: 'Gate Attendant user not found' });
+  try {
+    const { gateId } = req.body;
+    const updatedUser = db.updateUserGate(req.params.id, gateId);
+    if (!updatedUser) return res.status(404).json({ success: false, error: 'Gate Attendant user not found' });
 
-  wsManager.broadcast('USER_UPDATED', {
-    user: updatedUser,
-    users: db.getUsers()
-  });
+    wsManager.broadcast('USER_UPDATED', {
+      user: updatedUser,
+      users: db.getUsers()
+    });
 
-  res.json({ success: true, user: updatedUser });
+    res.json({ success: true, user: updatedUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 export default router;

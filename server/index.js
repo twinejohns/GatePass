@@ -16,8 +16,10 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Support high-resolution card artwork uploads (up to 50MB base64 data URLs)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Attach REST API Routes
 app.use('/api', routes);
@@ -38,6 +40,18 @@ if (fs.existsSync(distPath)) {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
+
+// Global error handling middleware for payload errors
+app.use((err, req, res, next) => {
+  console.error('Server Express Error:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error'
+  });
+});
 
 // Initialize WebSocket Manager
 wsManager.init(server);

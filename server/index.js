@@ -22,6 +22,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Attach REST API Routes
 app.use('/api', routes);
 
+// Prevent API requests from falling through to HTML static fallback
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `API endpoint ${req.method} ${req.originalUrl} not found on server`
+  });
+});
+
 // Serve Production Frontend Dist Assets if built
 const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {

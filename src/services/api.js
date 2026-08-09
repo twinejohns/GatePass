@@ -9,9 +9,17 @@ async function fetchJson(url, options = {}) {
       },
       ...options
     });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error(`Non-JSON response from ${API_BASE}${url}:`, text);
+      throw new Error(`Server returned status ${res.status} (${res.statusText}). Please make sure the backend server (npm run server) is running on port 5000.`);
+    }
+
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || 'Server error occurred');
+      throw new Error(data.error || `Server error ${res.status}`);
     }
     return data;
   } catch (err) {

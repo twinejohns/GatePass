@@ -60,6 +60,12 @@ router.get('/events', (req, res) => {
   res.json({ success: true, events: db.getEvents() });
 });
 
+// GET Event Analytics Endpoint
+router.get('/events/:id/analytics', (req, res) => {
+  const analytics = calculateAnalytics(req.params.id);
+  res.json({ success: true, analytics });
+});
+
 router.get('/events/:id', (req, res) => {
   const event = db.getEvent(req.params.id);
   if (!event) return res.status(404).json({ success: false, error: 'Event not found' });

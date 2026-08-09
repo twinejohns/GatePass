@@ -9,17 +9,20 @@ import DigitalTicketModal from './components/DigitalTicketModal';
 import ReissueTicketModal from './components/ReissueTicketModal';
 import AddEditAttendeeModal from './components/AddEditAttendeeModal';
 import EditEventModal from './components/EditEventModal';
+import PwaInstallBanner from './components/PwaInstallBanner';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { api } from './services/api';
 import { socketService } from './services/socket';
+import { Menu, QrCode, ShieldCheck } from 'lucide-react';
 
 function MainApp() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Routing View: 'LANDING' | 'LOGIN' | 'APP'
+  // View Mode: 'LANDING' | 'LOGIN' | 'APP'
   const [viewMode, setViewMode] = useState('LANDING');
   const [activeTab, setActiveTab] = useState('analytics');
+  const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
 
   // Core Data State
   const [users, setUsers] = useState([]);
@@ -329,10 +332,31 @@ function MainApp() {
   }
 
   return (
-    <div className={`min-h-screen flex transition-colors duration-300 ${
+    <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-300 ${
       isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
     }`}>
       
+      {/* Mobile Top Navigation Bar */}
+      <div className={`md:hidden flex items-center justify-between p-4 border-b sticky top-0 z-30 ${
+        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+      }`}>
+        <button
+          onClick={() => setIsOpenMobileSidebar(true)}
+          className="p-2 rounded-xl border border-slate-700 text-slate-300 hover:text-white"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center space-x-2">
+          <QrCode className="w-5 h-5 text-indigo-400" />
+          <span className="font-extrabold text-base tracking-tight">GatePass</span>
+        </div>
+
+        <div className="flex items-center space-x-1">
+          <span className={`w-2 h-2 rounded-full ${isWsOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+        </div>
+      </div>
+
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
@@ -340,12 +364,17 @@ function MainApp() {
         currentUser={currentUser}
         isWsOnline={isWsOnline}
         onLogout={() => setViewMode('LANDING')}
+        isOpenMobile={isOpenMobileSidebar}
+        onCloseMobile={() => setIsOpenMobileSidebar(false)}
       />
 
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <main className="p-6 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="p-4 sm:p-6 space-y-6 max-w-7xl w-full mx-auto">
           
+          {/* PWA Mobile Installation Banner */}
+          <PwaInstallBanner />
+
           {/* Phase Banner with Edit Event Button */}
           <EventPhaseBanner
             event={currentEvent}

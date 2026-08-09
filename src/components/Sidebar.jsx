@@ -14,7 +14,9 @@ import {
   Moon,
   QrCode,
   Sparkles,
-  MapPin
+  MapPin,
+  X,
+  Smartphone
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -23,7 +25,9 @@ export default function Sidebar({
   onTabChange,
   currentUser,
   isWsOnline,
-  onLogout
+  onLogout,
+  isOpenMobile,
+  onCloseMobile
 }) {
   const { theme, toggleTheme } = useTheme();
   const isManager = currentUser?.role === 'Manager';
@@ -42,26 +46,36 @@ export default function Sidebar({
     { key: 'scanner', label: 'Gate Camera Scanner', icon: Camera, color: 'text-emerald-400' }
   ];
 
-  return (
-    <aside className={`w-64 flex-shrink-0 border-r flex flex-col justify-between p-4 transition-colors duration-300 ${
+  const sidebarContent = (
+    <div className={`w-64 h-full flex flex-col justify-between p-4 transition-colors duration-300 ${
       isDark ? 'bg-slate-900/95 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'
     }`}>
       
       {/* Top Header */}
       <div className="space-y-6">
         
-        {/* Brand */}
-        <div className="flex items-center space-x-3 px-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <QrCode className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <div className="font-extrabold text-lg tracking-tight">GatePass</div>
-            <div className="text-[10px] text-indigo-400 font-mono flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${isWsOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-              {isWsOnline ? 'LIVE SYNC' : 'OFFLINE BUFFER'}
+        {/* Brand & Mobile Close Button */}
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <QrCode className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="font-extrabold text-lg tracking-tight">GatePass</div>
+              <div className="text-[10px] text-indigo-400 font-mono flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${isWsOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                {isWsOnline ? 'LIVE SYNC' : 'OFFLINE BUFFER'}
+              </div>
             </div>
           </div>
+
+          {/* Close button for mobile drawer */}
+          <button
+            onClick={onCloseMobile}
+            className="md:hidden p-1.5 text-slate-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Current Active User Profile Badge */}
@@ -89,7 +103,10 @@ export default function Sidebar({
             return (
               <button
                 key={item.key}
-                onClick={() => onTabChange(item.key)}
+                onClick={() => {
+                  onTabChange(item.key);
+                  if (onCloseMobile) onCloseMobile();
+                }}
                 className={`w-full px-3 py-2.5 rounded-xl font-semibold text-xs flex items-center space-x-3 transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 font-bold'
@@ -135,6 +152,28 @@ export default function Sidebar({
 
       </div>
 
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar (hidden on mobile) */}
+      <aside className="hidden md:flex flex-shrink-0 border-r border-slate-800">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer (visible on mobile when open) */}
+      {isOpenMobile && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div 
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
+            onClick={onCloseMobile}
+          ></div>
+          <div className="relative z-10 w-64 h-full">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

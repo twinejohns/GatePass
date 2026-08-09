@@ -96,11 +96,11 @@ const defaultData = {
       eventId: 'evt_tech_2026',
       cardImageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800',
       fields: {
-        name: { x: 40, y: 90, fontSize: 22, color: '#ffffff', enabled: true },
-        delegateId: { x: 40, y: 125, fontSize: 16, color: '#f59e0b', enabled: true },
-        company: { x: 40, y: 155, fontSize: 15, color: '#38bdf8', enabled: true },
-        tier: { x: 40, y: 185, fontSize: 13, color: '#a855f7', enabled: true },
-        qrCode: { x: 480, y: 70, width: 140, height: 140, enabled: true }
+        name: { x: 4, y: 22, fontSize: 22, color: '#ffffff', enabled: true },
+        delegateId: { x: 4, y: 32, fontSize: 16, color: '#f59e0b', enabled: true },
+        company: { x: 4, y: 39, fontSize: 15, color: '#38bdf8', enabled: true },
+        tier: { x: 4, y: 46, fontSize: 13, color: '#a855f7', enabled: true },
+        qrCode: { x: 68, y: 18, width: 22, height: 22, lockAspect: true, enabled: true }
       }
     }
   ],
@@ -237,6 +237,15 @@ class Database {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
         this.data = JSON.parse(raw);
+        // Ensure default array collections exist on disk DB object
+        if (!this.data.users) this.data.users = defaultData.users;
+        if (!this.data.events) this.data.events = defaultData.events;
+        if (!this.data.ticketTemplates) this.data.ticketTemplates = defaultData.ticketTemplates;
+        if (!this.data.invitationOverlayTemplates) this.data.invitationOverlayTemplates = defaultData.invitationOverlayTemplates;
+        if (!this.data.attendees) this.data.attendees = defaultData.attendees;
+        if (!this.data.emailLogs) this.data.emailLogs = [];
+        if (!this.data.scans) this.data.scans = defaultData.scans;
+        if (!this.data.auditLogs) this.data.auditLogs = defaultData.auditLogs;
       } else {
         this.save();
       }
@@ -254,25 +263,33 @@ class Database {
   }
 
   // Getters
-  getUsers() { return this.data.users; }
-  getUser(id) { return this.data.users.find(u => u.id === id); }
-  getEvents() { return this.data.events; }
-  getEvent(id) { return this.data.events.find(e => e.id === id); }
+  getUsers() { return this.data.users || []; }
+  getUser(id) { return (this.data.users || []).find(u => u.id === id); }
+  getEvents() { return this.data.events || []; }
+  getEvent(id) { return (this.data.events || []).find(e => e.id === id); }
+  
   getTicketTemplate(eventId) { 
-    return this.data.ticketTemplates.find(t => t.eventId === eventId) || this.data.ticketTemplates[0]; 
+    if (!this.data.ticketTemplates) this.data.ticketTemplates = defaultData.ticketTemplates;
+    return this.data.ticketTemplates.find(t => t.eventId === eventId) || defaultData.ticketTemplates[0]; 
   }
+  
   getInvitationTemplate(eventId) {
-    return this.data.invitationOverlayTemplates.find(t => t.eventId === eventId) || this.data.invitationOverlayTemplates[0];
+    if (!this.data.invitationOverlayTemplates) {
+      this.data.invitationOverlayTemplates = defaultData.invitationOverlayTemplates;
+    }
+    return this.data.invitationOverlayTemplates.find(t => t.eventId === eventId) || defaultData.invitationOverlayTemplates[0];
   }
+  
   getAttendees(eventId) { 
-    return this.data.attendees.filter(a => a.eventId === eventId); 
+    return (this.data.attendees || []).filter(a => a.eventId === eventId); 
   }
-  getAttendee(id) { return this.data.attendees.find(a => a.id === id || a.delegateId === id); }
+  
+  getAttendee(id) { return (this.data.attendees || []).find(a => a.id === id || a.delegateId === id); }
   getScans(eventId) { 
-    return this.data.scans.filter(s => s.eventId === eventId); 
+    return (this.data.scans || []).filter(s => s.eventId === eventId); 
   }
   getAuditLogs(eventId) { 
-    return this.data.auditLogs.filter(l => l.eventId === eventId); 
+    return (this.data.auditLogs || []).filter(l => l.eventId === eventId); 
   }
 
   // Event Details Mutator
@@ -313,6 +330,7 @@ class Database {
   }
 
   saveTicketTemplate(template) {
+    if (!this.data.ticketTemplates) this.data.ticketTemplates = defaultData.ticketTemplates;
     const idx = this.data.ticketTemplates.findIndex(t => t.eventId === template.eventId);
     if (idx >= 0) {
       this.data.ticketTemplates[idx] = { ...this.data.ticketTemplates[idx], ...template };
@@ -324,6 +342,9 @@ class Database {
   }
 
   saveInvitationTemplate(template) {
+    if (!this.data.invitationOverlayTemplates) {
+      this.data.invitationOverlayTemplates = [...defaultData.invitationOverlayTemplates];
+    }
     const idx = this.data.invitationOverlayTemplates.findIndex(t => t.eventId === template.eventId);
     if (idx >= 0) {
       this.data.invitationOverlayTemplates[idx] = { ...this.data.invitationOverlayTemplates[idx], ...template };

@@ -9,6 +9,7 @@ import DigitalTicketModal from './components/DigitalTicketModal';
 import ReissueTicketModal from './components/ReissueTicketModal';
 import AddEditAttendeeModal from './components/AddEditAttendeeModal';
 import EditEventModal from './components/EditEventModal';
+import CustomInvitationCardModal from './components/CustomInvitationCardModal';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { api } from './services/api';
@@ -41,6 +42,7 @@ function MainApp() {
   const [activePassData, setActivePassData] = useState(null);
   const [reissueTargetAttendee, setReissueTargetAttendee] = useState(null);
   const [addEditModalData, setAddEditModalData] = useState(null);
+  const [activeCustomCardAttendee, setActiveCustomCardAttendee] = useState(null);
 
   useEffect(() => {
     loadUsers();
@@ -400,6 +402,7 @@ function MainApp() {
             onOpenReissueModal={setReissueTargetAttendee}
             onOpenAddAttendee={() => setAddEditModalData({})}
             onOpenEditAttendee={(att) => setAddEditModalData(att)}
+            onOpenCustomCardModal={(att) => setActiveCustomCardAttendee(att)}
             onAddUser={handleAddUser}
             onUpdateUserGate={handleUpdateUserGate}
             onExportCsv={handleExportCsv}
@@ -431,6 +434,14 @@ function MainApp() {
         <DigitalTicketModal
           passData={activePassData}
           onClose={() => setActivePassData(null)}
+        />
+      )}
+
+      {activeCustomCardAttendee && (
+        <CustomInvitationCardModal
+          attendee={activeCustomCardAttendee}
+          eventId={currentEvent?.id}
+          onClose={() => setActiveCustomCardAttendee(null)}
         />
       )}
 

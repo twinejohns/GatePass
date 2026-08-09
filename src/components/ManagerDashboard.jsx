@@ -1,30 +1,31 @@
 import React, { useState } from 'react';
 import { 
-  Users, 
-  Upload, 
-  Palette, 
   BarChart2, 
+  Users, 
+  Palette, 
+  Mail, 
+  Download, 
+  Camera, 
   ShieldCheck, 
-  Search, 
-  CheckCircle2, 
-  Clock, 
+  Plus, 
+  Upload, 
   RefreshCw, 
-  QrCode, 
-  UserPlus,
+  QrCode,
+  CheckCircle2,
+  Clock,
+  Search,
+  Filter,
+  Building2,
   Edit3,
-  Mail,
-  Download,
-  FileCheck,
-  Building2
+  FileCheck
 } from 'lucide-react';
 import LiveAnalytics from './LiveAnalytics';
 import TicketTemplateEditor from './TicketTemplateEditor';
-import UserManagement from './UserManagement';
+import InvitationTemplateStudio from './InvitationTemplateStudio';
 import BulkEmailDispatcher from './BulkEmailDispatcher';
 import VectorQrExporter from './VectorQrExporter';
-import InvitationTemplateStudio from './InvitationTemplateStudio';
 import ScannerInterface from './ScannerInterface';
-import { useTheme } from '../context/ThemeContext';
+import UserManagement from './UserManagement';
 
 export default function ManagerDashboard({
   event,
@@ -41,6 +42,7 @@ export default function ManagerDashboard({
   onOpenReissueModal,
   onOpenAddAttendee,
   onOpenEditAttendee,
+  onOpenCustomCardModal,
   onAddUser,
   onUpdateUserGate,
   onExportCsv,
@@ -48,105 +50,91 @@ export default function ManagerDashboard({
   onScanPayload,
   currentUser
 }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedTier, setSelectedTier] = useState('ALL');
 
-  const filteredAttendees = (attendees || []).filter(a => {
-    const q = searchQuery.toLowerCase();
-    const matchesQuery = (
-      a.name.toLowerCase().includes(q) ||
-      a.email.toLowerCase().includes(q) ||
-      (a.company && a.company.toLowerCase().includes(q)) ||
-      (a.phone && a.phone.toLowerCase().includes(q)) ||
-      a.tier.toLowerCase().includes(q)
-    );
-    const matchesStatus = statusFilter === 'ALL' || a.status === statusFilter;
-    return matchesQuery && matchesStatus;
+  const tiersList = Array.from(new Set(attendees.map(a => a.tier)));
+
+  const filteredAttendees = attendees.filter(att => {
+    const matchSearch = att.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        att.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (att.company && att.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (att.delegateId && att.delegateId.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        att.tier.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchTier = selectedTier === 'ALL' || att.tier === selectedTier;
+    return matchSearch && matchTier;
   });
 
   return (
     <div className="space-y-6">
-      
-      {/* TABS CONTENT BASED ON SIDEBAR */}
 
       {/* 1. ATTENDEES DIRECTORY */}
       {activeTab === 'attendees' && (
-        <div className={`border rounded-3xl p-6 shadow-xl space-y-4 ${
-          isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl space-y-6">
           
+          {/* Action Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold">Attendee Passes & Verification Directory</h2>
-              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Manage individual attendees, edit records, view digital pass cards, and re-issue lost QR tokens
-              </p>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-cyan-400" />
+                <span>Attendees Directory & Digital Passes</span>
+              </h2>
+              <p className="text-xs text-slate-400">Manage registered attendees, view ticket passes, export PDF cards, and reissue credentials</p>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center space-x-2.5">
               <button
                 onClick={onOpenAddAttendee}
-                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
               >
-                <UserPlus className="w-4 h-4" /> Add Single Attendee
+                <Plus className="w-4 h-4" /> Single Attendee
               </button>
 
               <button
                 onClick={onOpenBulkUpload}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-xs border border-slate-700 flex items-center gap-1.5 shadow"
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1.5 shadow"
               >
-                <Upload className="w-4 h-4" /> Bulk CSV Import
+                <Upload className="w-4 h-4 text-cyan-400" /> CSV Bulk Upload
               </button>
             </div>
           </div>
 
-          {/* Search & Status Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <div className="flex items-center space-x-3">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className={`text-xs border px-3 py-2 rounded-xl focus:outline-none ${
-                  isDark ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-300 text-slate-800'
-                }`}
-              >
-                <option value="ALL">All Statuses ({attendees.length})</option>
-                <option value="ISSUED">Issued / Unscanned</option>
-                <option value="CHECKED_IN">Checked-In</option>
-              </select>
-            </div>
-
-            <div className="relative">
+          {/* Search & Filter Tools */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
               <input
                 type="text"
+                placeholder="Search by Name, Company, Email, Delegate ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, email, company, phone..."
-                className={`text-xs rounded-xl pl-8 pr-3 py-2 border focus:outline-none focus:border-indigo-500 ${
-                  isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-900'
-                }`}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-slate-400" />
+              <select
+                value={selectedTier}
+                onChange={(e) => setSelectedTier(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+              >
+                <option value="ALL">All Ticket Tiers</option>
+                {tiersList.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
           </div>
 
-          {/* Directory Table */}
-          <div className={`overflow-x-auto border rounded-2xl ${
-            isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-50'
-          }`}>
-            <table className="w-full text-left text-xs">
-              <thead className={`border-b ${
-                isDark ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-200 border-slate-300 text-slate-700'
-              }`}>
+          {/* Attendees Table */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-800">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
                 <tr>
-                  <th className="p-3.5 font-semibold">Attendee Name</th>
+                  <th className="p-3.5 font-semibold">Delegate ID / Name</th>
                   <th className="p-3.5 font-semibold">Company</th>
                   <th className="p-3.5 font-semibold">Contact Info</th>
-                  <th className="p-3.5 font-semibold">Tier</th>
-                  <th className="p-3.5 font-semibold">Version</th>
+                  <th className="p-3.5 font-semibold">Ticket Tier</th>
+                  <th className="p-3.5 font-semibold">QR Version</th>
                   <th className="p-3.5 font-semibold">Status</th>
                   <th className="p-3.5 font-semibold text-right">Actions</th>
                 </tr>
@@ -161,7 +149,10 @@ export default function ManagerDashboard({
                 ) : (
                   filteredAttendees.map(att => (
                     <tr key={att.id} className="hover:bg-indigo-500/5 transition-colors">
-                      <td className="p-3.5 font-bold">{att.name}</td>
+                      <td className="p-3.5">
+                        <div className="font-bold text-white">{att.name}</div>
+                        <div className="font-mono text-[11px] text-amber-400 font-bold">{att.delegateId || att.id}</div>
+                      </td>
                       <td className="p-3.5 text-indigo-400 font-medium">
                         <span className="flex items-center gap-1">
                           <Building2 className="w-3 h-3 text-slate-400" />
@@ -195,6 +186,14 @@ export default function ManagerDashboard({
                         </button>
 
                         <button
+                          onClick={() => onOpenCustomCardModal(att)}
+                          className="px-2.5 py-1 rounded-lg bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold text-[11px] border border-amber-500/40 inline-flex items-center gap-1"
+                          title="View, Print & Download Custom PDF Invitation Card"
+                        >
+                          <FileCheck className="w-3 h-3 text-amber-400" /> PDF Card
+                        </button>
+
+                        <button
                           onClick={() => onOpenPassModal(att.id)}
                           className="px-2.5 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 font-semibold text-[11px] border border-indigo-500/40 inline-flex items-center gap-1"
                         >
@@ -203,7 +202,7 @@ export default function ManagerDashboard({
 
                         <button
                           onClick={() => onOpenReissueModal(att)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold text-[11px] border border-amber-500/40 inline-flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold text-[11px] border border-rose-500/40 inline-flex items-center gap-1"
                         >
                           <RefreshCw className="w-3 h-3" /> Re-Issue
                         </button>
@@ -251,31 +250,30 @@ export default function ManagerDashboard({
         />
       )}
 
-      {/* 6. VECTOR QR CODE EXPORTER */}
+      {/* 6. VECTOR QR EXPORTER */}
       {activeTab === 'vectorExport' && (
         <VectorQrExporter
           eventId={event?.id}
         />
       )}
 
-      {/* 7. GATE SCANNER */}
+      {/* 7. GATE SCANNER & STAFF */}
       {activeTab === 'scanner' && (
         <ScannerInterface
           event={event}
           currentUser={currentUser}
-          users={users}
-          attendees={attendees}
           onScanPayload={onScanPayload}
         />
       )}
 
-      {/* 8. STAFF & ROLES (Manager Gate Allocation) */}
+      {/* 8. STAFF & ROLE MANAGEMENT */}
       {activeTab === 'users' && (
         <UserManagement
           users={users}
-          eventGates={event?.gates || []}
+          gates={event?.gates || []}
           onAddUser={onAddUser}
           onUpdateUserGate={onUpdateUserGate}
+          currentUser={currentUser}
         />
       )}
 

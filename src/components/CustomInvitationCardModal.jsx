@@ -45,7 +45,7 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
     if (!printContent) return;
     const windowUrl = 'about:blank';
     const uniqueName = 'Print_Invitation_Card';
-    const windowFeatures = 'left=50,top=50,width=800,height=600';
+    const windowFeatures = 'left=50,top=50,width=850,height=650';
     const printWindow = window.open(windowUrl, uniqueName, windowFeatures);
 
     printWindow.document.write(`
@@ -53,16 +53,56 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
       <html>
         <head>
           <title>Print Invitation Card - ${currentAttendee.name}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
           <style>
-            body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; background: #fff; }
-            .card-wrapper { width: 100%; max-width: 800px; position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
-            img.bg-art { width: 100%; height: auto; display: block; }
-            .field-overlay { position: absolute; font-family: system-ui, -apple-system, sans-serif; white-space: nowrap; }
-            .qr-box { position: absolute; background: white; padding: 6px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;800&display=swap');
+            
+            * { box-sizing: border-box; }
+            body { 
+              margin: 0; 
+              padding: 20px; 
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              background: #ffffff; 
+              font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+              -webkit-font-smoothing: antialiased;
+            }
+            .card-wrapper { 
+              width: 100%; 
+              max-width: 800px; 
+              position: relative; 
+              border-radius: 16px; 
+              overflow: hidden; 
+              box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+              aspect-ratio: 16/9;
+            }
+            img.bg-art { width: 100%; height: 100%; object-fit: contain; display: block; }
+            .field-overlay { 
+              position: absolute; 
+              font-family: 'Poppins', 'Inter', system-ui, sans-serif; 
+              white-space: nowrap; 
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .field-overlay.font-mono {
+              font-family: 'JetBrains Mono', monospace !important;
+            }
+            .qr-box { 
+              position: absolute; 
+              background: #ffffff; 
+              padding: 6px; 
+              border-radius: 12px; 
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+              border: 1px solid #cbd5e1;
+            }
             .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+            
             @media print {
-              body { padding: 0; }
-              .card-wrapper { box-shadow: none; }
+              body { padding: 0; background: none; }
+              .card-wrapper { box-shadow: none; border-radius: 0; }
             }
           </style>
         </head>
@@ -71,10 +111,12 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
             ${printContent.innerHTML}
           </div>
           <script>
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 500);
+            document.fonts.ready.then(() => {
+              setTimeout(() => {
+                window.print();
+                window.close();
+              }, 400);
+            });
           </script>
         </body>
       </html>
@@ -84,7 +126,7 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
 
   const handleDownloadPng = () => {
     if (!cardRef.current) return;
-    // Create an offscreen canvas to render the card
+    // Create canvas for high-resolution export
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
@@ -92,40 +134,103 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
     img.src = studioTemplate?.cardImageUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800';
     
     img.onload = () => {
-      canvas.width = img.naturalWidth || 800;
-      canvas.height = img.naturalHeight || 450;
+      canvas.width = img.naturalWidth || 1200;
+      canvas.height = img.naturalHeight || 675;
       
       // Draw background
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       const fields = studioTemplate?.fields || {};
 
-      // Draw Name
-      if (fields.name?.enabled) {
-        ctx.font = `bold ${fields.name.fontSize * 1.5}px Inter, sans-serif`;
-        ctx.fillStyle = fields.name.color || '#ffffff';
-        ctx.fillText(currentAttendee.name, (fields.name.x / 100) * canvas.width, (fields.name.y / 100) * canvas.height);
+      // Auto-fit helper function for canvas text to prevent overlap
+      const drawAutoFitText = (text, targetX, targetY, baseFontSize, fontFamily, fontStyle, color, maxAllowedWidth) => {
+        let currentFontSize = baseFontSize;
+        ctx.font = `${fontStyle} ${currentFontSize}px ${fontFamily}`;
+        
+        while (ctx.measureText(text).width > maxAllowedWidth && currentFontSize > 14) {
+          currentFontSize -= 1.5;
+          ctx.font = `${fontStyle} ${currentFontSize}px ${fontFamily}`;
+        }
+        
+        ctx.fillStyle = color;
+        ctx.fillText(text, targetX, targetY);
+      };
+
+      // Draw Name (Auto-Fitted to prevent overlap)
+      if (fields.name?.enabled && currentAttendee.name) {
+        const nameX = (fields.name.x / 100) * canvas.width;
+        const nameY = (fields.name.y / 100) * canvas.height;
+        const baseFontSize = (fields.name.fontSize || 22) * (canvas.height / 450);
+        const maxAllowedWidth = canvas.width - nameX - (canvas.width * 0.05);
+
+        drawAutoFitText(
+          currentAttendee.name, 
+          nameX, 
+          nameY, 
+          baseFontSize, 
+          "Poppins, Inter, sans-serif", 
+          "900", 
+          fields.name.color || '#ffffff', 
+          maxAllowedWidth
+        );
       }
 
       // Draw Delegate ID
       if (fields.delegateId?.enabled) {
-        ctx.font = `bold ${fields.delegateId.fontSize * 1.5}px JetBrains Mono, monospace`;
-        ctx.fillStyle = fields.delegateId.color || '#f59e0b';
-        ctx.fillText(currentAttendee.delegateId || currentAttendee.id, (fields.delegateId.x / 100) * canvas.width, (fields.delegateId.y / 100) * canvas.height);
+        const delX = (fields.delegateId.x / 100) * canvas.width;
+        const delY = (fields.delegateId.y / 100) * canvas.height;
+        const baseFontSize = (fields.delegateId.fontSize || 16) * (canvas.height / 450);
+        const delegateIdStr = currentAttendee.delegateId || currentAttendee.id;
+        const maxAllowedWidth = canvas.width - delX - (canvas.width * 0.05);
+
+        drawAutoFitText(
+          delegateIdStr, 
+          delX, 
+          delY, 
+          baseFontSize, 
+          "JetBrains Mono, monospace", 
+          "800", 
+          fields.delegateId.color || '#f59e0b', 
+          maxAllowedWidth
+        );
       }
 
-      // Draw Company
+      // Draw Company (Auto-Fitted)
       if (fields.company?.enabled && currentAttendee.company) {
-        ctx.font = `bold ${fields.company.fontSize * 1.5}px Inter, sans-serif`;
-        ctx.fillStyle = fields.company.color || '#38bdf8';
-        ctx.fillText(currentAttendee.company, (fields.company.x / 100) * canvas.width, (fields.company.y / 100) * canvas.height);
+        const compX = (fields.company.x / 100) * canvas.width;
+        const compY = (fields.company.y / 100) * canvas.height;
+        const baseFontSize = (fields.company.fontSize || 15) * (canvas.height / 450);
+        const maxAllowedWidth = canvas.width - compX - (canvas.width * 0.05);
+
+        drawAutoFitText(
+          currentAttendee.company, 
+          compX, 
+          compY, 
+          baseFontSize, 
+          "Poppins, Inter, sans-serif", 
+          "700", 
+          fields.company.color || '#38bdf8', 
+          maxAllowedWidth
+        );
       }
 
       // Draw Tier
-      if (fields.tier?.enabled) {
-        ctx.font = `bold ${fields.tier.fontSize * 1.5}px Inter, sans-serif`;
-        ctx.fillStyle = fields.tier.color || '#a855f7';
-        ctx.fillText(currentAttendee.tier, (fields.tier.x / 100) * canvas.width, (fields.tier.y / 100) * canvas.height);
+      if (fields.tier?.enabled && currentAttendee.tier) {
+        const tierX = (fields.tier.x / 100) * canvas.width;
+        const tierY = (fields.tier.y / 100) * canvas.height;
+        const baseFontSize = (fields.tier.fontSize || 13) * (canvas.height / 450);
+        const maxAllowedWidth = canvas.width - tierX - (canvas.width * 0.05);
+
+        drawAutoFitText(
+          currentAttendee.tier, 
+          tierX, 
+          tierY, 
+          baseFontSize, 
+          "Poppins, Inter, sans-serif", 
+          "800", 
+          fields.tier.color || '#a855f7', 
+          maxAllowedWidth
+        );
       }
 
       // Draw QR Code
@@ -172,35 +277,44 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
     qrCode: { x: 68, y: 18, width: 22, height: 22, enabled: true }
   };
 
+  // Helper for dynamic auto-fit font size based on text length
+  const getAutoFitFontSize = (baseSize, text) => {
+    if (!text) return baseSize;
+    if (text.length > 25) return Math.max(12, Math.round(baseSize * 0.65));
+    if (text.length > 18) return Math.max(13, Math.round(baseSize * 0.78));
+    if (text.length > 13) return Math.max(14, Math.round(baseSize * 0.88));
+    return baseSize;
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className={`border rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto ${
-        isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+      <div className={`border rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto font-sans ${
+        isDark ? 'bg-[#090d16] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
       }`}>
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <div className="p-2.5 rounded-xl bg-[#F7D06B]/20 text-[#F7D06B] border border-[#F7D06B]/30">
               <FileCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="text-base font-bold">Custom Personalized Invitation Card</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                <h3 className="text-base font-extrabold">Custom Personalized Invitation Card</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-[#01BD9B]/20 text-[#01BD9B] border border-[#01BD9B]/40 font-extrabold">
                   v{currentAttendee.qrVersion || 1} QR Code Linked
                 </span>
               </div>
-              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Personalized for {currentAttendee.name} ({currentAttendee.delegateId || currentAttendee.id})
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Aligned for {currentAttendee.name} ({currentAttendee.delegateId || currentAttendee.id})
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="font-bold text-lg text-slate-400 hover:text-slate-200">✕</button>
+          <button onClick={onClose} className="font-extrabold text-lg text-slate-400 hover:text-slate-200">✕</button>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-xs text-slate-400">Loading custom invitation artwork & dynamic QR...</div>
+          <div className="text-center py-12 text-xs text-slate-400 font-semibold">Loading custom invitation artwork & dynamic QR...</div>
         ) : (
           /* Rendered Card Overlay Container */
           <div 
@@ -214,16 +328,18 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
               className="bg-art w-full h-full object-contain"
             />
 
-            {/* Overlay: Name */}
+            {/* Overlay: Name (Auto-Fit & Truncated) */}
             {fields.name?.enabled && (
               <div
                 style={{
                   left: `${fields.name.x}%`,
                   top: `${fields.name.y}%`,
-                  fontSize: `${fields.name.fontSize}px`,
-                  color: fields.name.color || '#ffffff'
+                  fontSize: `${getAutoFitFontSize(fields.name.fontSize || 22, currentAttendee.name)}px`,
+                  color: fields.name.color || '#ffffff',
+                  maxWidth: `calc(95% - ${fields.name.x}%)`
                 }}
-                className="field-overlay font-extrabold"
+                className="field-overlay font-extrabold tracking-tight"
+                title={currentAttendee.name}
               >
                 {currentAttendee.name}
               </div>
@@ -235,8 +351,9 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
                 style={{
                   left: `${fields.delegateId.x}%`,
                   top: `${fields.delegateId.y}%`,
-                  fontSize: `${fields.delegateId.fontSize}px`,
-                  color: fields.delegateId.color || '#f59e0b'
+                  fontSize: `${fields.delegateId.fontSize || 16}px`,
+                  color: fields.delegateId.color || '#f59e0b',
+                  maxWidth: `calc(95% - ${fields.delegateId.x}%)`
                 }}
                 className="field-overlay font-mono font-extrabold"
               >
@@ -244,14 +361,15 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
               </div>
             )}
 
-            {/* Overlay: Company */}
+            {/* Overlay: Company (Auto-Fit) */}
             {fields.company?.enabled && (
               <div
                 style={{
                   left: `${fields.company.x}%`,
                   top: `${fields.company.y}%`,
-                  fontSize: `${fields.company.fontSize}px`,
-                  color: fields.company.color || '#38bdf8'
+                  fontSize: `${getAutoFitFontSize(fields.company.fontSize || 15, currentAttendee.company)}px`,
+                  color: fields.company.color || '#38bdf8',
+                  maxWidth: `calc(95% - ${fields.company.x}%)`
                 }}
                 className="field-overlay font-semibold"
               >
@@ -265,16 +383,17 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
                 style={{
                   left: `${fields.tier.x}%`,
                   top: `${fields.tier.y}%`,
-                  fontSize: `${fields.tier.fontSize}px`,
-                  color: fields.tier.color || '#a855f7'
+                  fontSize: `${fields.tier.fontSize || 13}px`,
+                  color: fields.tier.color || '#a855f7',
+                  maxWidth: `calc(95% - ${fields.tier.x}%)`
                 }}
-                className="field-overlay font-bold"
+                className="field-overlay font-bold uppercase tracking-wider"
               >
                 {currentAttendee.tier}
               </div>
             )}
 
-            {/* Overlay: Dynamic QR Code (vN based on current attendee.qrVersion) */}
+            {/* Overlay: Dynamic QR Code */}
             {fields.qrCode?.enabled && qrDataUrl && (
               <div
                 style={{
@@ -299,14 +418,14 @@ export default function CustomInvitationCardModal({ attendee, eventId, onClose }
         <div className="grid grid-cols-2 gap-3 text-xs pt-2">
           <button
             onClick={handleDownloadPng}
-            className="py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+            className="py-3 rounded-xl btn-brand-primary font-extrabold flex items-center justify-center gap-2 shadow"
           >
             <Download className="w-4 h-4" /> Download Card PNG
           </button>
           
           <button
             onClick={handlePrint}
-            className="py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20"
+            className="py-3 rounded-xl btn-brand-gold font-extrabold flex items-center justify-center gap-2 shadow"
           >
             <Printer className="w-4 h-4" /> Print Custom Invitation
           </button>

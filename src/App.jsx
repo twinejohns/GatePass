@@ -11,6 +11,7 @@ import AddEditAttendeeModal from './components/AddEditAttendeeModal';
 import EditEventModal from './components/EditEventModal';
 import CustomInvitationCardModal from './components/CustomInvitationCardModal';
 import PwaInstallBanner from './components/PwaInstallBanner';
+import Footer from './components/Footer';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { api } from './services/api';
 import { socketService } from './services/socket';
@@ -383,8 +384,8 @@ function MainApp() {
       />
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <main className="p-4 sm:p-6 space-y-6 max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex flex-col min-w-0 justify-between overflow-y-auto min-h-screen">
+        <main className="p-4 sm:p-6 space-y-6 max-w-7xl w-full mx-auto flex-1">
           
           {/* PWA Mobile Installation Banner */}
           <PwaInstallBanner />
@@ -424,6 +425,9 @@ function MainApp() {
           />
 
         </main>
+
+        {/* Global Mangrove Media Copyright Footer */}
+        <Footer />
       </div>
 
       {/* Modals */}

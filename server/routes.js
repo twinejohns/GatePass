@@ -298,11 +298,31 @@ router.post('/events/:id/send-emails-bulk', handleSendBulkEmails);
 router.get('/events/:id/vector-qr', handleExportVectorQrs);
 router.get('/events/:id/export-vector-qrs', handleExportVectorQrs);
 
-// Scanner API: Validate and record scan
+// Scanner API: Validate and record scan (Supports raw encrypted QR string, Delegate ID, or Attendee ID)
 router.post('/scan', (req, res) => {
   try {
     const { qrPayload, gateId, attendantName } = req.body;
-    const verified = verifyQrPayload(qrPayload);
+    let verified = verifyQrPayload(qrPayload);
+
+    // Support direct lookup by Delegate ID (e.g. ATS-2026-0002) or Attendee ID (att_102)
+    if (!verified.valid && qrPayload) {
+      const cleanInput = String(qrPayload).trim();
+      const allAttendees = db.getAttendees('evt_tech_2026');
+      const found = allAttendees.find(a => 
+        a.id.toLowerCase() === cleanInput.toLowerCase() || 
+        (a.delegateId && a.delegateId.toLowerCase() === cleanInput.toLowerCase()) ||
+        (a.delegateId && a.delegateId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === cleanInput.replace(/[^a-zA-Z0-9]/g, '').toLowerCase())
+      ) || db.getAttendee(cleanInput);
+
+      if (found) {
+        verified = {
+          valid: true,
+          eventId: found.eventId,
+          attendeeId: found.id,
+          qrVersion: found.qrVersion || 1
+        };
+      }
+    }
 
     if (!verified.valid) {
       const scanRecord = db.recordScan({
@@ -326,7 +346,7 @@ router.post('/scan', (req, res) => {
       return res.json({
         success: false,
         result: 'INVALID_SIGNATURE',
-        message: 'Invalid QR signature or corrupted ticket payload'
+        message: 'Invalid credential ID, QR signature or corrupted ticket payload'
       });
     }
 

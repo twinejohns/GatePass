@@ -1,106 +1,100 @@
 import React from 'react';
-import { Beaker, Play, Lock, ShieldAlert, CheckCircle2, Info, Edit3, Settings } from 'lucide-react';
+import { ShieldCheck, Radio, CheckCircle, AlertTriangle, Clock, Lock, Sparkles, Edit3 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function EventPhaseBanner({ event, currentPhase, onPhaseChange, isManager, onEditEventDetails }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  if (!event) return null;
+
   const phases = [
     {
       key: 'PRE_EVENT_TEST',
-      label: 'Pre-Event Test Period',
-      shortLabel: '🧪 Test Mode',
-      icon: Beaker,
-      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
-      activeBorder: 'border-purple-500 shadow-purple-500/10',
-      description: 'Organizers can scan & test QR codes to confirm hardware and signature validation without consuming live attendee tickets.'
+      label: '1. Pre-Event Test Phase',
+      desc: 'Simulate scans with test tokens before live check-in opens',
+      color: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30'
     },
     {
       key: 'LIVE_GATES_OPEN',
-      label: 'Live (Gates Open)',
-      shortLabel: '🟢 Gates Open',
-      icon: Play,
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-      activeBorder: 'border-emerald-500 shadow-emerald-500/10',
-      description: 'Official event entry mode. Scanning QR codes checks attendees in atomically and blocks duplicate/re-entry attempts.'
+      label: '2. Live Gates Open',
+      desc: 'Active live attendance check-in across all gate stations',
+      color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30'
     },
     {
       key: 'CLOSED',
-      label: 'Event Closed / Expired',
-      shortLabel: '🔴 Event Closed',
-      icon: Lock,
-      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
-      activeBorder: 'border-rose-500 shadow-rose-500/10',
-      description: 'Gates are locked. Standard QR codes are rendered invalid unless a Manager explicitly re-issues a pass.'
+      label: '3. Event Closed',
+      desc: 'Gates locked. No further check-ins permitted.',
+      color: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30'
     }
   ];
 
-  const currentObj = phases.find(p => p.key === currentPhase) || phases[1];
-
   return (
-    <div className={`rounded-2xl border bg-slate-900/90 p-5 shadow-xl transition-all duration-300 ${currentObj.activeBorder}`}>
+    <div className={`p-6 rounded-3xl border shadow-xl space-y-4 transition-colors duration-300 ${
+      isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+    }`}>
+      
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         
-        {/* Left Status Info */}
-        <div className="flex items-start space-x-3.5">
-          <div className={`p-3 rounded-xl border ${currentObj.badgeColor} flex-shrink-0`}>
-            <currentObj.icon className="w-6 h-6 animate-pulse" />
+        {/* Left Side: Event Details & Phase Title */}
+        <div className="space-y-1">
+          <div className="flex items-center space-x-3">
+            <span className="relative flex h-3 w-3">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                currentPhase === 'LIVE_GATES_OPEN' ? 'bg-emerald-400' : 'bg-amber-400'
+              }`}></span>
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                currentPhase === 'LIVE_GATES_OPEN' ? 'bg-emerald-500' : 'bg-amber-500'
+              }`}></span>
+            </span>
+            <h1 className="text-xl font-extrabold tracking-tight">{event.name}</h1>
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Current Event Phase</span>
-              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${currentObj.badgeColor}`}>
-                {currentObj.label}
-              </span>
-            </div>
 
-            <div className="flex items-center space-x-2 mt-0.5">
-              <h3 className="text-lg font-bold text-white">{event?.name || 'GatePass Event'}</h3>
-              {isManager && (
-                <button
-                  onClick={onEditEventDetails}
-                  className="px-2 py-0.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white font-bold text-[11px] border border-indigo-500/40 inline-flex items-center gap-1 transition-all"
-                  title="Edit Event Details, Venue, Capacity & Gates"
-                >
-                  <Edit3 className="w-3 h-3" /> Edit Event
-                </button>
-              )}
-            </div>
-
-            <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              {currentObj.description}
-            </p>
-          </div>
+          <p className={`text-xs flex flex-wrap items-center gap-x-4 gap-y-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <span>📍 {event.venue || 'Metropolitan Convention Center'}</span>
+            <span>📅 {new Date(event.date).toLocaleDateString()}</span>
+            <span>👥 Capacity: {event.capacity} Attendees</span>
+          </p>
         </div>
 
-        {/* Right Phase Switcher (Manager Only Control) */}
-        {isManager ? (
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Manager Phase Controls</span>
-            <div className="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+        {/* Right Side: Edit Event Button & Phase Controls */}
+        <div className="flex items-center space-x-3">
+          {isManager && (
+            <button
+              onClick={onEditEventDetails}
+              className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow transition-all ${
+                isDark ? 'bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700' : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'
+              }`}
+            >
+              <Edit3 className="w-4 h-4 text-amber-500" />
+              <span>Edit Event Details</span>
+            </button>
+          )}
+
+          {isManager && (
+            <div className={`flex rounded-2xl border p-1 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
               {phases.map((p) => {
                 const isActive = currentPhase === p.key;
                 return (
                   <button
                     key={p.key}
                     onClick={() => onPhaseChange(p.key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
                       isActive
-                        ? `${p.badgeColor} shadow-md border font-bold`
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <p.icon className="w-3.5 h-3.5" />
-                    <span>{p.shortLabel}</span>
+                    {p.key === 'PRE_EVENT_TEST' ? 'Pre-Event' : p.key === 'LIVE_GATES_OPEN' ? 'Live Gates' : 'Closed'}
                   </button>
                 );
               })}
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center space-x-2 bg-slate-950/60 px-3 py-2 rounded-xl border border-slate-800 text-xs text-slate-300">
-            <Info className="w-4 h-4 text-indigo-400" />
-            <span>Mode managed by Event Manager ({currentObj.shortLabel})</span>
-          </div>
-        )}
+          )}
+        </div>
+
       </div>
+
     </div>
   );
 }

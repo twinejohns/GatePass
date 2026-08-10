@@ -83,11 +83,16 @@ const defaultData = {
       accentColor: '#38bdf8',
       headerTitle: 'GLOBAL TECH SUMMIT 2026',
       logoUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200',
-      showAttendeePhoto: true,
-      showPhone: true,
-      showEmail: true,
+      cardImageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800',
+      showContactInfo: false,
       showCompany: true,
       showDelegateId: true,
+      tierColors: {
+        'VIP Access': '#d97706',       // Amber / Gold
+        'General Admission': '#4f46e5',// Indigo / Royal Blue
+        'Speaker': '#059669',          // Emerald Green
+        'Press / Media': '#9333ea'     // Purple
+      },
       footerNote: 'Present this pass at designated gate. Non-transferable once checked in.'
     }
   ],

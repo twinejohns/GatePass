@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Tag
+  Tag,
+  User
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -129,14 +130,14 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
       {/* Middle Section: Gate Stations Throughput & Tier Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Gate Stations Throughput Bar Chart */}
+        {/* Gate Stations Throughput Bar Chart & Attached Staff List */}
         <div className={`lg:col-span-2 p-5 rounded-3xl border shadow-xl space-y-4 ${
           isDark ? 'bg-[#090d16] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
         }`}>
           <div className="flex items-center justify-between border-b pb-3 border-slate-800">
             <div className="flex items-center space-x-2">
               <BarChart3 className="w-5 h-5 text-[#1698E1]" />
-              <h3 className="text-base font-extrabold">Live Gate Stations Throughput</h3>
+              <h3 className="text-base font-extrabold">Live Gate Stations Throughput & Allocated Staff</h3>
             </div>
             <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[#1698E1]/15 text-[#1698E1] uppercase border border-[#1698E1]/30">
               Real-time
@@ -147,31 +148,70 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
             {gateStats.map(g => {
               const maxGateCount = Math.max(1, ...gateStats.map(x => x.checkedInCount));
               const percent = Math.round((g.checkedInCount / maxGateCount) * 100);
+              const attendantsList = g.activeAttendantsList || [];
+
               return (
-                <div key={g.gateId} className="space-y-1.5">
-                  <div className="flex items-center justify-between font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-[#1698E1]" />
+                <div key={g.gateId} className={`p-4 rounded-2xl border space-y-3 ${
+                  isDark ? 'bg-[#030712] border-slate-800' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 font-bold">
+                    <span className="flex items-center gap-1.5 text-sm font-extrabold">
+                      <MapPin className="w-4 h-4 text-[#1698E1]" />
                       <span>{g.gateName}</span>
                     </span>
-                    <span className="font-mono text-[#01BD9B] font-extrabold">
-                      {g.checkedInCount} Scanned ({g.activeAttendantsCount} Staff Active)
+                    <span className="font-mono text-[#01BD9B] font-extrabold text-xs">
+                      {g.checkedInCount} Scanned Passes ({g.activeAttendantsCount} Staff Assigned)
                     </span>
                   </div>
 
-                  <div className={`w-full h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-950 border border-slate-800' : 'bg-slate-100 border border-slate-200'}`}>
+                  {/* Throughput Progress Bar */}
+                  <div className={`w-full h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-950 border border-slate-800' : 'bg-slate-200'}`}>
                     <div
                       style={{ width: `${percent}%` }}
                       className="h-full bg-gradient-to-r from-[#1698E1] via-[#1D69D6] to-[#01BD9B] rounded-full transition-all duration-500"
                     ></div>
                   </div>
+
+                  {/* Visible Attached Gate Staff Members */}
+                  <div className="pt-2 border-t border-slate-800/40">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-2">
+                      Assigned Gate Attendants:
+                    </span>
+
+                    {attendantsList.length === 0 ? (
+                      <div className="text-[11px] text-amber-500 italic font-semibold flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                        <span>No attendant currently allocated to this gate station</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {attendantsList.map(att => (
+                          <div 
+                            key={att.id || att.name} 
+                            className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                              isDark ? 'bg-[#222222] border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800 shadow-sm'
+                            }`}
+                          >
+                            <img 
+                              src={att.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'} 
+                              alt={att.name} 
+                              className="w-5 h-5 rounded-full border border-[#1698E1] object-cover"
+                            />
+                            <span>{att.name}</span>
+                            <span className="w-2 h-2 rounded-full bg-[#01BD9B] animate-pulse"></span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Ticket Tiers Breakdown */}
+        {/* Ticket Tier Breakdown */}
         <div className={`p-5 rounded-3xl border shadow-xl space-y-4 ${
           isDark ? 'bg-[#090d16] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
         }`}>

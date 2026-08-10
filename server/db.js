@@ -5,7 +5,23 @@ import { generateQrPayload } from './cryptoEngine.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DB_FILE = path.join(__dirname, 'database.json');
+
+// Determine Persistent Database File Path (Supports Render Persistent Disks / Custom Volumes / Local Fallback)
+function getDatabaseFilePath() {
+  if (process.env.DB_FILE_PATH) {
+    return process.env.DB_FILE_PATH;
+  }
+  if (process.env.DATA_DIR) {
+    return path.join(process.env.DATA_DIR, 'database.json');
+  }
+  // Check standard Render persistent mount path /var/data
+  if (fs.existsSync('/var/data')) {
+    return '/var/data/database.json';
+  }
+  return path.join(__dirname, 'database.json');
+}
+
+const DB_FILE = getDatabaseFilePath();
 
 function formatDelegateId(pattern, seq, tier = '') {
   const paddedSeq = String(seq).padStart(4, '0');
@@ -77,23 +93,23 @@ const defaultData = {
   ticketTemplates: [
     {
       eventId: 'evt_tech_2026',
-      bannerBgColor: '#4f46e5',
+      bannerBgColor: '#1698E1',
       cardBgColor: '#0f172a',
       textColor: '#ffffff',
-      accentColor: '#38bdf8',
+      accentColor: '#58BAD7',
       headerTitle: 'GLOBAL TECH SUMMIT 2026',
-      logoUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200',
-      cardImageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800',
+      cardImageUrl: '',
       showContactInfo: false,
       showCompany: true,
       showDelegateId: true,
+      useCustomArtwork: false,
       tierColors: {
-        'VIP Access': '#d97706',       // Amber / Gold
-        'General Admission': '#4f46e5',// Indigo / Royal Blue
-        'Speaker': '#059669',          // Emerald Green
-        'Press / Media': '#9333ea'     // Purple
+        'VIP Access': '#F7D06B',       // Gold
+        'General Admission': '#1698E1',// Primary Blue
+        'Speaker': '#01BD9B',          // Emerald
+        'Press / Media': '#3250FF'     // Royal Electric Blue
       },
-      footerNote: 'Present this pass at designated gate. Non-transferable once checked in.'
+      footerNote: 'Present this credential at designated gate. Non-transferable once checked in.'
     }
   ],
   invitationOverlayTemplates: [
@@ -102,9 +118,9 @@ const defaultData = {
       cardImageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800',
       fields: {
         name: { x: 4, y: 22, fontSize: 22, color: '#ffffff', enabled: true },
-        delegateId: { x: 4, y: 32, fontSize: 16, color: '#f59e0b', enabled: true },
-        company: { x: 4, y: 39, fontSize: 15, color: '#38bdf8', enabled: true },
-        tier: { x: 4, y: 46, fontSize: 13, color: '#a855f7', enabled: true },
+        delegateId: { x: 4, y: 32, fontSize: 16, color: '#F7D06B', enabled: true },
+        company: { x: 4, y: 39, fontSize: 15, color: '#58BAD7', enabled: true },
+        tier: { x: 4, y: 46, fontSize: 13, color: '#3250FF', enabled: true },
         qrCode: { x: 68, y: 18, width: 22, height: 22, lockAspect: true, enabled: true }
       }
     }
@@ -239,18 +255,30 @@ class Database {
 
   load() {
     try {
+      // 1. If DATABASE_JSON env var is set, deserialize from ENV first
+      if (process.env.DATABASE_JSON) {
+        try {
+          this.data = JSON.parse(process.env.DATABASE_JSON);
+        } catch (e) {
+          console.error('Failed to parse DATABASE_JSON env var:', e);
+        }
+      }
+
+      // 2. Read from persistent file disk if file exists
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
-        this.data = JSON.parse(raw);
-        // Ensure default array collections exist on disk DB object
-        if (!this.data.users) this.data.users = defaultData.users;
-        if (!this.data.events) this.data.events = defaultData.events;
-        if (!this.data.ticketTemplates) this.data.ticketTemplates = defaultData.ticketTemplates;
-        if (!this.data.invitationOverlayTemplates) this.data.invitationOverlayTemplates = defaultData.invitationOverlayTemplates;
-        if (!this.data.attendees) this.data.attendees = defaultData.attendees;
-        if (!this.data.emailLogs) this.data.emailLogs = [];
-        if (!this.data.scans) this.data.scans = defaultData.scans;
-        if (!this.data.auditLogs) this.data.auditLogs = defaultData.auditLogs;
+        const diskData = JSON.parse(raw);
+
+        // Merge disk data into memory, preserving captured attendees & scans
+        this.data = {
+          ...this.data,
+          ...diskData,
+          users: (diskData.users && diskData.users.length > 0) ? diskData.users : this.data.users,
+          events: (diskData.events && diskData.events.length > 0) ? diskData.events : this.data.events,
+          attendees: (diskData.attendees && diskData.attendees.length > 0) ? diskData.attendees : this.data.attendees,
+          scans: (diskData.scans && diskData.scans.length > 0) ? diskData.scans : this.data.scans,
+          auditLogs: (diskData.auditLogs && diskData.auditLogs.length > 0) ? diskData.auditLogs : this.data.auditLogs
+        };
       } else {
         this.save();
       }
@@ -261,6 +289,10 @@ class Database {
 
   save() {
     try {
+      const dir = path.dirname(DB_FILE);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
       fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (err) {
       console.error('Failed to save database file:', err);

@@ -55,6 +55,100 @@ function calculateAnalytics(eventId) {
   };
 }
 
+// Handler for Ticket Pass Lookup (shared by /attendees/:id/pass and /tickets/:id/pass)
+const handleGetTicketPass = async (req, res) => {
+  try {
+    const attendee = db.getAttendee(req.params.id);
+    if (!attendee) return res.status(404).json({ success: false, error: 'Attendee not found' });
+
+    const event = db.getEvent(attendee.eventId);
+    const template = db.getTicketTemplate(attendee.eventId);
+
+    const qrPayload = generateQrPayload(attendee.eventId, attendee.id, attendee.qrVersion || 1);
+    const qrDataUrl = await QRCode.toDataURL(qrPayload, {
+      width: 300,
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
+
+    res.json({
+      success: true,
+      pass: {
+        attendee,
+        event,
+        template,
+        qrString: qrPayload,
+        qrDataUrl
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Handler for Reissuing Ticket (shared by /attendees/:id/reissue and /tickets/:id/reissue)
+const handleReissueTicket = async (req, res) => {
+  try {
+    const { managerName, reason } = req.body;
+    const result = db.reissueQrCode(req.params.id, managerName, reason);
+    if (!result) return res.status(404).json({ success: false, error: 'Attendee not found' });
+
+    wsManager.broadcast('TICKET_REISSUED', {
+      attendeeId: result.attendee.id,
+      delegateId: result.attendee.delegateId,
+      newVersion: result.attendee.qrVersion,
+      managerName,
+      analytics: calculateAnalytics(result.attendee.eventId)
+    });
+
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Handler for Vector QR Exporter (shared by /events/:id/vector-qr and /events/:id/export-vector-qrs)
+const handleExportVectorQrs = async (req, res) => {
+  try {
+    const attendees = db.getAttendees(req.params.id);
+    const vectorAssets = await Promise.all(attendees.map(async (a) => {
+      const payload = generateQrPayload(req.params.id, a.id, a.qrVersion || 1);
+      const svgString = await QRCode.toString(payload, { type: 'svg', margin: 2 });
+      return {
+        id: a.id,
+        attendeeId: a.id,
+        delegateId: a.delegateId || a.id,
+        name: a.name,
+        company: a.company,
+        email: a.email,
+        tier: a.tier,
+        qrVersion: a.qrVersion || 1,
+        svgData: svgString,
+        svgString
+      };
+    }));
+
+    res.json({ success: true, vectorAssets });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Handler for Bulk Email Dispatcher (shared by /events/:id/bulk-email and /events/:id/send-emails-bulk)
+const handleSendBulkEmails = (req, res) => {
+  try {
+    const { attendeeIds, subject } = req.body;
+    const updated = db.markEmailsSent(attendeeIds || []);
+    res.json({
+      success: true,
+      sentCount: updated.length,
+      message: `Dispatched ${updated.length} ticket emails successfully`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // Events
 router.get('/events', (req, res) => {
   res.json({ success: true, events: db.getEvents() });
@@ -64,6 +158,11 @@ router.get('/events', (req, res) => {
 router.get('/events/:id/analytics', (req, res) => {
   const analytics = calculateAnalytics(req.params.id);
   res.json({ success: true, analytics });
+});
+
+// GET Audit Logs Endpoint
+router.get('/events/:id/audit-logs', (req, res) => {
+  res.json({ success: true, auditLogs: db.getAuditLogs(req.params.id) });
 });
 
 router.get('/events/:id', (req, res) => {
@@ -183,96 +282,21 @@ router.post('/events/:id/attendees/bulk', (req, res) => {
   }
 });
 
-// Digital Ticket Pass Lookup
-router.get('/attendees/:id/pass', async (req, res) => {
-  try {
-    const attendee = db.getAttendee(req.params.id);
-    if (!attendee) return res.status(404).json({ success: false, error: 'Attendee not found' });
+// Digital Ticket Pass Lookup (Supported via both /attendees/:id/pass and /tickets/:id/pass)
+router.get('/attendees/:id/pass', handleGetTicketPass);
+router.get('/tickets/:id/pass', handleGetTicketPass);
 
-    const event = db.getEvent(attendee.eventId);
-    const template = db.getTicketTemplate(attendee.eventId);
+// Re-issue Ticket (Supported via both /attendees/:id/reissue and /tickets/:id/reissue)
+router.post('/attendees/:id/reissue', handleReissueTicket);
+router.post('/tickets/:id/reissue', handleReissueTicket);
 
-    const qrPayload = generateQrPayload(attendee.eventId, attendee.id, attendee.qrVersion || 1);
-    const qrDataUrl = await QRCode.toDataURL(qrPayload, {
-      width: 300,
-      margin: 2,
-      color: { dark: '#000000', light: '#ffffff' }
-    });
+// Bulk Email Pass Dispatcher (Supported via both /events/:id/bulk-email and /events/:id/send-emails-bulk)
+router.post('/events/:id/bulk-email', handleSendBulkEmails);
+router.post('/events/:id/send-emails-bulk', handleSendBulkEmails);
 
-    res.json({
-      success: true,
-      pass: {
-        attendee,
-        event,
-        template,
-        qrString: qrPayload,
-        qrDataUrl
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Re-issue Ticket (Version N -> N+1)
-router.post('/attendees/:id/reissue', async (req, res) => {
-  try {
-    const { managerName, reason } = req.body;
-    const result = db.reissueQrCode(req.params.id, managerName, reason);
-    if (!result) return res.status(404).json({ success: false, error: 'Attendee not found' });
-
-    wsManager.broadcast('TICKET_REISSUED', {
-      attendeeId: result.attendee.id,
-      delegateId: result.attendee.delegateId,
-      newVersion: result.attendee.qrVersion,
-      managerName,
-      analytics: calculateAnalytics(result.attendee.eventId)
-    });
-
-    res.json({ success: true, ...result });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Bulk Email Pass Dispatcher
-router.post('/events/:id/bulk-email', (req, res) => {
-  try {
-    const { attendeeIds, subject } = req.body;
-    const updated = db.markEmailsSent(attendeeIds || []);
-    res.json({
-      success: true,
-      sentCount: updated.length,
-      message: `Dispatched ${updated.length} ticket emails successfully`
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Vector QR Code Exporter Asset Generator
-router.get('/events/:id/vector-qr', async (req, res) => {
-  try {
-    const attendees = db.getAttendees(req.params.id);
-    const vectorAssets = await Promise.all(attendees.map(async (a) => {
-      const payload = generateQrPayload(req.params.id, a.id, a.qrVersion || 1);
-      const svgString = await QRCode.toString(payload, { type: 'svg', margin: 2 });
-      return {
-        attendeeId: a.id,
-        delegateId: a.delegateId || a.id,
-        name: a.name,
-        company: a.company,
-        tier: a.tier,
-        qrVersion: a.qrVersion || 1,
-        svgString
-      };
-    }));
-
-    res.json({ success: true, vectorAssets });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// Vector QR Code Exporter Asset Generator (Supported via both /events/:id/vector-qr and /events/:id/export-vector-qrs)
+router.get('/events/:id/vector-qr', handleExportVectorQrs);
+router.get('/events/:id/export-vector-qrs', handleExportVectorQrs);
 
 // Scanner API: Validate and record scan
 router.post('/scan', (req, res) => {

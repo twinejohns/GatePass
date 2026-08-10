@@ -120,7 +120,7 @@ function MainApp() {
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load users:', err);
     }
   };
 
@@ -132,26 +132,38 @@ function MainApp() {
         selectEvent(res.events[0]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load events:', err);
     }
   };
 
   const selectEvent = async (evt) => {
     setCurrentEvent(evt);
+    
+    // Fetch attendees automatically
+    loadAttendees(evt.id);
+    
+    // Fetch analytics safely
     try {
-      const [analyticsRes, attendeesRes, templateRes, auditRes] = await Promise.all([
-        api.getAnalytics(evt.id),
-        api.getAttendees(evt.id),
-        api.getTicketTemplate(evt.id),
-        api.getAuditLogs(evt.id)
-      ]);
-
+      const analyticsRes = await api.getAnalytics(evt.id);
       if (analyticsRes.success) setAnalytics(analyticsRes.analytics);
-      if (attendeesRes.success) setAttendees(attendeesRes.attendees);
+    } catch (err) {
+      console.error('Analytics load error:', err);
+    }
+
+    // Fetch ticket template safely
+    try {
+      const templateRes = await api.getTicketTemplate(evt.id);
       if (templateRes.success) setTemplate(templateRes.template);
+    } catch (err) {
+      console.error('Template load error:', err);
+    }
+
+    // Fetch audit logs safely
+    try {
+      const auditRes = await api.getAuditLogs(evt.id);
       if (auditRes.success) setAuditLogs(auditRes.auditLogs);
     } catch (err) {
-      console.error(err);
+      console.error('Audit logs load error:', err);
     }
   };
 
@@ -242,7 +254,7 @@ function MainApp() {
       const res = await api.getAttendees(eventId);
       if (res.success) setAttendees(res.attendees);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load attendees:', err);
     }
   };
 
@@ -251,7 +263,7 @@ function MainApp() {
       const res = await api.getAuditLogs(eventId);
       if (res.success) setAuditLogs(res.auditLogs);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load audit logs:', err);
     }
   };
 

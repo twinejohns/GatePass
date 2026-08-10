@@ -13,7 +13,8 @@ import {
   MapPin,
   CheckCircle2,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Tag
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -43,6 +44,7 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
   } = analytics;
 
   const capacityPercent = capacity > 0 ? Math.min(100, Math.round((checkedInCount / capacity) * 100)) : 0;
+  const tierKeys = Object.keys(tierStats);
 
   return (
     <div className="space-y-6 font-sans">
@@ -169,7 +171,7 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
           </div>
         </div>
 
-        {/* Ticket Tier Breakdown */}
+        {/* Ticket Tiers Breakdown */}
         <div className={`p-5 rounded-3xl border shadow-xl space-y-4 ${
           isDark ? 'bg-[#090d16] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
         }`}>
@@ -179,23 +181,44 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
           </div>
 
           <div className="space-y-3 text-xs">
-            {Object.keys(tierStats).map(tier => {
-              const item = tierStats[tier];
-              const rate = item.total > 0 ? Math.round((item.checkedIn / item.total) * 100) : 0;
-              return (
-                <div key={tier} className={`p-3 rounded-2xl border flex items-center justify-between ${
-                  isDark ? 'bg-[#222222]/80 border-slate-800' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div>
-                    <div className="font-bold text-slate-900 dark:text-slate-100">{tier}</div>
-                    <div className="text-[11px] text-slate-500">{item.checkedIn} of {item.total} Checked In</div>
+            {tierKeys.length === 0 ? (
+              <div className={`p-4 text-center text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                No ticket tier data recorded yet.
+              </div>
+            ) : (
+              tierKeys.map(tier => {
+                const item = tierStats[tier];
+                const rate = item.total > 0 ? Math.round((item.checkedIn / item.total) * 100) : 0;
+                return (
+                  <div key={tier} className={`p-3.5 rounded-2xl border space-y-2 transition-all ${
+                    isDark ? 'bg-[#030712] border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-900'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Tag className="w-3.5 h-3.5 text-[#1698E1]" />
+                        <span className="font-extrabold text-xs">{tier}</span>
+                      </div>
+                      <span className="font-mono font-extrabold text-[#1698E1] text-xs">{rate}%</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
+                        {item.checkedIn} of {item.total} Checked In
+                      </span>
+                      <span className="font-semibold text-[#01BD9B]">{item.total - item.checkedIn} Remaining</span>
+                    </div>
+
+                    {/* Tier Progress Bar */}
+                    <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-900 border border-slate-800' : 'bg-slate-200'}`}>
+                      <div
+                        style={{ width: `${rate}%` }}
+                        className="h-full bg-gradient-to-r from-[#1698E1] to-[#01BD9B] transition-all duration-500"
+                      ></div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="font-mono font-extrabold text-[#1698E1] text-sm">{rate}%</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 

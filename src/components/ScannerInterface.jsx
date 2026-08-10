@@ -177,45 +177,76 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
         </form>
       </div>
 
-      {/* Live Scan Verification Result Banner */}
+      {/* Live Scan Verification Result Banner (High Contrast Green & Red Alerts) */}
       {scanResult && (
-        <div className={`p-6 rounded-3xl border shadow-2xl space-y-4 animate-in fade-in duration-200 ${
+        <div className={`p-6 rounded-3xl border-2 shadow-2xl space-y-4 animate-in fade-in duration-200 ${
           scanResult.success 
-            ? 'bg-[#01BD9B]/15 border-[#01BD9B]/40 text-emerald-100'
-            : 'bg-[#E55555]/15 border-[#E55555]/40 text-rose-100'
+            ? isDark
+              ? 'bg-emerald-950/80 border-[#01BD9B] text-emerald-100'
+              : 'bg-emerald-50 border-[#01BD9B] text-emerald-950 shadow-emerald-500/10'
+            : isDark
+              ? 'bg-red-950/80 border-[#E55555] text-red-100'
+              : 'bg-red-50 border-[#E55555] text-red-950 shadow-red-500/10'
         }`}>
-          <div className="flex items-center space-x-3">
-            <div className={`p-3 rounded-2xl ${scanResult.success ? 'bg-[#01BD9B]/20 text-[#01BD9B]' : 'bg-[#E55555]/20 text-[#E55555]'}`}>
+          <div className="flex items-center space-x-3.5">
+            <div className={`p-3.5 rounded-2xl flex-shrink-0 ${
+              scanResult.success 
+                ? 'bg-[#01BD9B]/20 text-[#01BD9B]' 
+                : 'bg-[#E55555]/20 text-[#E55555]'
+            }`}>
               {scanResult.success ? <CheckCircle2 className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
             </div>
 
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest block opacity-80">VERIFICATION RESULT</span>
-              <h3 className="text-xl font-extrabold">{scanResult.message}</h3>
+              <span className={`text-[10px] font-extrabold uppercase tracking-widest block ${
+                scanResult.success 
+                  ? isDark ? 'text-emerald-400' : 'text-emerald-800'
+                  : isDark ? 'text-red-400' : 'text-red-800'
+              }`}>
+                VERIFICATION RESULT
+              </span>
+              <h3 className={`text-lg font-extrabold leading-snug ${
+                scanResult.success 
+                  ? isDark ? 'text-emerald-100' : 'text-emerald-950'
+                  : isDark ? 'text-red-100' : 'text-red-950'
+              }`}>
+                {scanResult.message}
+              </h3>
             </div>
           </div>
 
+          {/* Attendee Details Card Overlay inside Result Banner */}
           {scanResult.attendee && (
-            <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Attendee Name:</span>
-                <span className="font-extrabold text-white text-sm">{scanResult.attendee.name}</span>
+            <div className={`p-4 rounded-2xl border space-y-2.5 text-xs font-sans ${
+              isDark 
+                ? 'bg-[#030712] border-slate-800 text-slate-100' 
+                : 'bg-white border-slate-300 text-slate-900 shadow-md'
+            }`}>
+              <div className="flex justify-between items-center">
+                <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Attendee Name:</span>
+                <span className={`font-extrabold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {scanResult.attendee.name}
+                </span>
               </div>
 
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Delegate ID:</span>
-                <span className="font-mono font-extrabold text-[#F7D06B]">{scanResult.attendee.delegateId || scanResult.attendee.id}</span>
+              <div className="flex justify-between items-center">
+                <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Delegate ID:</span>
+                <span className={`font-mono font-extrabold ${isDark ? 'text-[#F7D06B]' : 'text-[#1D69D6]'}`}>
+                  {scanResult.attendee.delegateId || scanResult.attendee.id}
+                </span>
               </div>
 
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Ticket Tier:</span>
-                <span className="font-bold text-[#58BAD7]">{scanResult.attendee.tier}</span>
+              <div className="flex justify-between items-center">
+                <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Ticket Tier:</span>
+                <span className="font-extrabold text-[#1698E1]">{scanResult.attendee.tier}</span>
               </div>
 
               {scanResult.attendee.company && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Company:</span>
-                  <span className="font-bold text-slate-200">{scanResult.attendee.company}</span>
+                <div className="flex justify-between items-center">
+                  <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Company:</span>
+                  <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    {scanResult.attendee.company}
+                  </span>
                 </div>
               )}
             </div>

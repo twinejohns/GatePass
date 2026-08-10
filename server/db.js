@@ -6,7 +6,7 @@ import { generateQrPayload } from './cryptoEngine.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Determine Persistent Database File Path (Supports Render Persistent Disks / Custom Volumes / Local Fallback)
+// Determine Persistent Database File Path (Supports Railway Volumes / Render Disks / Custom Mounts / Local Fallback)
 function getDatabaseFilePath() {
   if (process.env.DB_FILE_PATH) {
     return process.env.DB_FILE_PATH;
@@ -14,7 +14,17 @@ function getDatabaseFilePath() {
   if (process.env.DATA_DIR) {
     return path.join(process.env.DATA_DIR, 'database.json');
   }
-  // Check standard Render persistent mount path /var/data
+  if (process.env.RAILWAY_VOLUME_MOUNT_PATH) {
+    return path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'database.json');
+  }
+  // Check standard Railway volume mount paths
+  if (fs.existsSync('/app/data')) {
+    return '/app/data/database.json';
+  }
+  if (fs.existsSync('/data')) {
+    return '/data/database.json';
+  }
+  // Check standard Render persistent mount path
   if (fs.existsSync('/var/data')) {
     return '/var/data/database.json';
   }
@@ -255,12 +265,15 @@ class Database {
 
   load() {
     try {
+      console.log(`[GatePass DB] Target persistent database path: ${DB_FILE}`);
+
       // 1. If DATABASE_JSON env var is set, deserialize from ENV first
       if (process.env.DATABASE_JSON) {
         try {
           this.data = JSON.parse(process.env.DATABASE_JSON);
+          console.log('[GatePass DB] Loaded database state from DATABASE_JSON env variable');
         } catch (e) {
-          console.error('Failed to parse DATABASE_JSON env var:', e);
+          console.error('[GatePass DB] Failed to parse DATABASE_JSON env var:', e);
         }
       }
 
@@ -279,11 +292,13 @@ class Database {
           scans: (diskData.scans && diskData.scans.length > 0) ? diskData.scans : this.data.scans,
           auditLogs: (diskData.auditLogs && diskData.auditLogs.length > 0) ? diskData.auditLogs : this.data.auditLogs
         };
+        console.log(`[GatePass DB] Successfully loaded ${this.data.attendees.length} attendees and ${this.data.scans.length} scans from disk.`);
       } else {
+        console.log(`[GatePass DB] Initializing new database file at ${DB_FILE}`);
         this.save();
       }
     } catch (err) {
-      console.error('Error loading database file:', err);
+      console.error('[GatePass DB] Error loading database file:', err);
     }
   }
 
@@ -295,7 +310,7 @@ class Database {
       }
       fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (err) {
-      console.error('Failed to save database file:', err);
+      console.error('[GatePass DB] Failed to save database file:', err);
     }
   }
 

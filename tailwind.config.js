@@ -8,21 +8,20 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          900: '#312e81',
-        },
-        dark: {
-          800: '#0f172a',
-          900: '#090d16',
-          950: '#030712'
+          blue: '#1698E1',      // Primary Sky Blue
+          gold: '#F7D06B',      // Primary Gold Amber
+          ocean: '#1D69D6',     // Secondary Deep Ocean
+          dark: '#222222',      // Secondary Dark Charcoal
+          electric: '#3250FF',  // Secondary Royal Electric
+          emerald: '#01BD9B',   // Secondary Vibrant Mint Green
+          coral: '#E55555',     // Secondary Coral Red
+          cyan: '#58BAD7',      // Secondary Light Cyan
+          grey: '#666666',      // Secondary Medium Grey
+          muted: '#6E6E6E'      // Secondary Muted Slate
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace']
       }
     },

@@ -55,7 +55,7 @@ export default function Sidebar({
       <div className="space-y-6">
         <div className="flex items-center justify-between px-2 pt-2">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1698E1] to-[#1D69D6] text-white flex items-center justify-center shadow-lg shadow-[#1698E1]/30">
+            <div className="w-10 h-10 rounded-2xl bg-[#1698E1] text-white flex items-center justify-center shadow-md">
               <QrCode className="w-6 h-6" />
             </div>
             <div>
@@ -114,7 +114,7 @@ export default function Sidebar({
                 }}
                 className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition-all ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#1698E1] to-[#1D69D6] text-white shadow-lg shadow-[#1698E1]/25 scale-[1.02]'
+                    ? 'bg-[#1698E1] text-white shadow-md'
                     : isDark 
                       ? 'text-slate-400 hover:text-white hover:bg-[#222222]' 
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'

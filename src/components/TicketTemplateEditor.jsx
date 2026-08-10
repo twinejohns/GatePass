@@ -168,7 +168,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          <div className="p-2.5 rounded-xl bg-[#1698E1]/20 text-[#1698E1] border border-[#1698E1]/30">
             <Palette className="w-5 h-5" />
           </div>
           <div>
@@ -181,7 +181,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
 
         <button
           onClick={handleSubmit}
-          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-purple-600/20 transition-all"
+          className="px-5 py-2.5 rounded-xl bg-[#1698E1] hover:bg-[#1D69D6] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all"
         >
           {saveSuccess ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           <span>{saveSuccess ? 'Pass Styles Saved!' : 'Save Pass Design'}</span>
@@ -198,7 +198,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
             isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
           }`}>
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="font-bold text-cyan-400 flex items-center gap-1.5">
+              <span className="font-bold text-[#1698E1] flex items-center gap-1.5">
                 <ImageIcon className="w-4 h-4" /> Custom Pass Design Artwork
               </span>
               {formData.cardImageUrl && (
@@ -207,7 +207,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                     type="checkbox"
                     checked={formData.useCustomArtwork}
                     onChange={(e) => setFormData({ ...formData, useCustomArtwork: e.target.checked })}
-                    className="w-4 h-4 accent-cyan-500 rounded"
+                    className="w-4 h-4 accent-[#1698E1] rounded"
                   />
                   <span className="font-bold text-slate-200">Use Custom Artwork Mode</span>
                 </label>
@@ -215,7 +215,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow">
+              <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#1698E1] hover:bg-[#1D69D6] text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow">
                 <Upload className="w-4 h-4" />
                 <span>{formData.cardImageUrl ? 'Replace Custom Pass Artwork' : 'Upload Custom Pass Background Design'}</span>
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -225,7 +225,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, cardImageUrl: '', useCustomArtwork: false })}
-                  className="text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1"
+                  className="text-[#E55555] hover:text-red-400 font-semibold flex items-center gap-1"
                 >
                   <X className="w-4 h-4" /> Remove Artwork
                 </button>
@@ -239,7 +239,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
               isDark ? 'bg-slate-950 border-amber-500/30' : 'bg-amber-50/60 border-amber-200'
             }`}>
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                <span className="font-bold text-amber-500 flex items-center gap-1.5">
                   <Sliders className="w-4 h-4" /> Movable Field Positioning Controls
                 </span>
                 <span className="text-[11px] text-slate-400">Position fields on artwork background</span>
@@ -262,7 +262,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                       onClick={() => setSelectedField(f.key)}
                       className={`py-2 px-2 rounded-xl border text-center transition-all ${
                         selectedField === f.key
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500 font-bold'
+                          ? 'bg-[#1698E1] text-white border-[#1698E1] font-bold'
                           : isDark ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200' : 'bg-white border-slate-300 text-slate-700'
                       }`}
                     >
@@ -279,7 +279,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                     <div>
                       <div className="flex justify-between font-semibold mb-1">
                         <span>Horizontal (X %):</span>
-                        <span className="font-mono text-indigo-400">{currentFieldConfig.x || 0}%</span>
+                        <span className="font-mono text-[#1698E1]">{currentFieldConfig.x || 0}%</span>
                       </div>
                       <input
                         type="range"
@@ -287,14 +287,14 @@ export default function TicketTemplateEditor({ template, onSave }) {
                         max="85"
                         value={currentFieldConfig.x || 0}
                         onChange={(e) => handlePassFieldChange(selectedField, 'x', parseInt(e.target.value, 10))}
-                        className="w-full accent-amber-500"
+                        className="w-full accent-[#1698E1]"
                       />
                     </div>
 
                     <div>
                       <div className="flex justify-between font-semibold mb-1">
                         <span>Vertical (Y %):</span>
-                        <span className="font-mono text-indigo-400">{currentFieldConfig.y || 0}%</span>
+                        <span className="font-mono text-[#1698E1]">{currentFieldConfig.y || 0}%</span>
                       </div>
                       <input
                         type="range"
@@ -302,7 +302,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                         max="85"
                         value={currentFieldConfig.y || 0}
                         onChange={(e) => handlePassFieldChange(selectedField, 'y', parseInt(e.target.value, 10))}
-                        className="w-full accent-amber-500"
+                        className="w-full accent-[#1698E1]"
                       />
                     </div>
                   </div>
@@ -312,7 +312,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                       <div>
                         <div className="flex justify-between font-semibold mb-1">
                           <span>Font Size:</span>
-                          <span className="font-mono text-indigo-400">{currentFieldConfig.fontSize || 16}px</span>
+                          <span className="font-mono text-[#1698E1]">{currentFieldConfig.fontSize || 16}px</span>
                         </div>
                         <input
                           type="range"
@@ -320,7 +320,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                           max="48"
                           value={currentFieldConfig.fontSize || 16}
                           onChange={(e) => handlePassFieldChange(selectedField, 'fontSize', parseInt(e.target.value, 10))}
-                          className="w-full accent-amber-500"
+                          className="w-full accent-[#1698E1]"
                         />
                       </div>
 
@@ -337,15 +337,15 @@ export default function TicketTemplateEditor({ template, onSave }) {
                   ) : (
                     <div className="space-y-2 bg-slate-900/90 p-3 rounded-xl border border-slate-800">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-amber-400 flex items-center gap-1">
-                          {currentFieldConfig.lockAspect ? <Lock className="w-3.5 h-3.5 text-emerald-400" /> : <Unlock className="w-3.5 h-3.5 text-rose-400" />}
+                        <span className="font-bold text-[#F7D06B] flex items-center gap-1">
+                          {currentFieldConfig.lockAspect ? <Lock className="w-3.5 h-3.5 text-[#01BD9B]" /> : <Unlock className="w-3.5 h-3.5 text-[#E55555]" />}
                           <span>Lock Aspect Ratio (1:1)</span>
                         </span>
                         <button
                           type="button"
                           onClick={toggleQrAspectLock}
                           className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                            currentFieldConfig.lockAspect ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500' : 'bg-rose-500/20 text-rose-300 border-rose-500'
+                            currentFieldConfig.lockAspect ? 'bg-[#01BD9B]/20 text-[#01BD9B] border-[#01BD9B]' : 'bg-[#E55555]/20 text-[#E55555] border-[#E55555]'
                           }`}
                         >
                           {currentFieldConfig.lockAspect ? 'Square 1:1' : 'Custom W/H'}
@@ -356,7 +356,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                         <div>
                           <div className="flex justify-between font-semibold mb-1">
                             <span>Width (%):</span>
-                            <span className="font-mono text-indigo-400">{currentFieldConfig.width || 20}%</span>
+                            <span className="font-mono text-[#1698E1]">{currentFieldConfig.width || 20}%</span>
                           </div>
                           <input
                             type="range"
@@ -364,14 +364,14 @@ export default function TicketTemplateEditor({ template, onSave }) {
                             max="60"
                             value={currentFieldConfig.width || 20}
                             onChange={(e) => handlePassFieldChange('qrCode', 'width', parseInt(e.target.value, 10))}
-                            className="w-full accent-amber-500"
+                            className="w-full accent-[#1698E1]"
                           />
                         </div>
 
                         <div>
                           <div className="flex justify-between font-semibold mb-1">
                             <span>Height (%):</span>
-                            <span className="font-mono text-indigo-400">{currentFieldConfig.height || 20}%</span>
+                            <span className="font-mono text-[#1698E1]">{currentFieldConfig.height || 20}%</span>
                           </div>
                           <input
                             type="range"
@@ -380,7 +380,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                             disabled={currentFieldConfig.lockAspect}
                             value={currentFieldConfig.height || 20}
                             onChange={(e) => handlePassFieldChange('qrCode', 'height', parseInt(e.target.value, 10))}
-                            className="w-full accent-amber-500 disabled:opacity-40"
+                            className="w-full accent-[#1698E1] disabled:opacity-40"
                           />
                         </div>
                       </div>
@@ -397,7 +397,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
             isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
           }`}>
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="font-bold text-amber-400 flex items-center gap-1.5">
+              <span className="font-bold text-[#F7D06B] flex items-center gap-1.5">
                 <Layers className="w-4 h-4" /> Access Level Tier Header Colors
               </span>
               <span className="text-[11px] text-slate-400">Card header adopts color of attendee's tier</span>
@@ -425,7 +425,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                       type="button"
                       onClick={() => setActiveTierPreview(tier)}
                       className={`px-2 py-1 rounded text-[10px] font-bold ${
-                        activeTierPreview === tier ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                        activeTierPreview === tier ? 'bg-[#1698E1] text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
                       Preview
@@ -444,7 +444,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                 type="text"
                 value={formData.headerTitle}
                 onChange={(e) => setFormData({ ...formData, headerTitle: e.target.value })}
-                className={`w-full rounded-xl px-3 py-2 border focus:outline-none focus:border-indigo-500 ${
+                className={`w-full rounded-xl px-3 py-2 border focus:outline-none focus:border-[#1698E1] ${
                   isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900'
                 }`}
               />
@@ -476,7 +476,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
         {/* Live Interactive Card Preview (1 Col) */}
         <div className="space-y-3">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Eye className="w-4 h-4 text-cyan-400" /> Live Pass Preview ({activeTierPreview})
+            <Eye className="w-4 h-4 text-[#1698E1]" /> Live Pass Preview ({activeTierPreview})
           </span>
 
           <div 
@@ -507,7 +507,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                     }}
                     onClick={() => setSelectedField('name')}
                     className={`absolute cursor-pointer font-extrabold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
-                      selectedField === 'name' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-white/40'
+                      selectedField === 'name' ? 'border-[#F7D06B] bg-[#F7D06B]/30 ring-2 ring-[#F7D06B]' : 'border-transparent hover:border-white/40'
                     }`}
                   >
                     Sophia Chen
@@ -525,7 +525,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                     }}
                     onClick={() => setSelectedField('delegateId')}
                     className={`absolute cursor-pointer font-mono font-extrabold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
-                      selectedField === 'delegateId' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-amber-400/40'
+                      selectedField === 'delegateId' ? 'border-[#F7D06B] bg-[#F7D06B]/30 ring-2 ring-[#F7D06B]' : 'border-transparent hover:border-amber-400/40'
                     }`}
                   >
                     ATS-2026-0002
@@ -543,7 +543,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                     }}
                     onClick={() => setSelectedField('company')}
                     className={`absolute cursor-pointer font-semibold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
-                      selectedField === 'company' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-white/40'
+                      selectedField === 'company' ? 'border-[#F7D06B] bg-[#F7D06B]/30 ring-2 ring-[#F7D06B]' : 'border-transparent hover:border-white/40'
                     }`}
                   >
                     Nexus AI Labs
@@ -561,7 +561,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                     }}
                     onClick={() => setSelectedField('tier')}
                     className={`absolute cursor-pointer font-bold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
-                      selectedField === 'tier' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-white/40'
+                      selectedField === 'tier' ? 'border-[#F7D06B] bg-[#F7D06B]/30 ring-2 ring-[#F7D06B]' : 'border-transparent hover:border-white/40'
                     }`}
                   >
                     {activeTierPreview}
@@ -579,7 +579,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                     }}
                     onClick={() => setSelectedField('qrCode')}
                     className={`absolute cursor-pointer bg-white p-1.5 rounded-xl shadow-2xl border flex items-center justify-center ${
-                      selectedField === 'qrCode' ? 'border-amber-400 ring-4 ring-amber-500/40' : 'border-slate-300'
+                      selectedField === 'qrCode' ? 'border-[#F7D06B] ring-4 ring-[#F7D06B]/40' : 'border-slate-300'
                     }`}
                   >
                     <img 
@@ -612,14 +612,14 @@ export default function TicketTemplateEditor({ template, onSave }) {
                       <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ATTENDEE DELEGATE</span>
                       <h3 className="text-lg font-extrabold text-white">Sophia Chen</h3>
                       {formData.showCompany && (
-                        <div className="text-xs text-cyan-400 font-bold">Nexus AI Labs</div>
+                        <div className="text-xs text-[#58BAD7] font-bold">Nexus AI Labs</div>
                       )}
                     </div>
 
                     {formData.showDelegateId && (
-                      <div className="bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-xl text-center">
-                        <span className="text-[8px] uppercase tracking-wider text-amber-400 font-bold block">DELEGATE ID</span>
-                        <span className="text-xs font-mono font-extrabold text-amber-300">ATS-2026-0002</span>
+                      <div className="bg-[#F7D06B]/15 border border-[#F7D06B]/30 px-2.5 py-1 rounded-xl text-center">
+                        <span className="text-[8px] uppercase tracking-wider text-[#F7D06B] font-bold block">DELEGATE ID</span>
+                        <span className="text-xs font-mono font-extrabold text-[#F7D06B]">ATS-2026-0002</span>
                       </div>
                     )}
                   </div>
@@ -632,7 +632,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
                         className="w-32 h-32 object-contain"
                       />
                     </div>
-                    <span className="text-[10px] font-mono text-amber-400 font-bold">ATS-2026-0002</span>
+                    <span className="text-[10px] font-mono text-[#F7D06B] font-bold">ATS-2026-0002</span>
                   </div>
 
                   <div className="text-[9px] text-slate-400 text-center border-t border-slate-800/60 pt-2">

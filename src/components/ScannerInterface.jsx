@@ -74,12 +74,12 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
       gain.connect(ctx.destination);
 
       if (isSuccess) {
-        osc.frequency.setValueAtTime(880, ctx.currentTime); // High pitch success beep
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
         gain.gain.setValueAtTime(0.3, ctx.currentTime);
         osc.start();
         osc.stop(ctx.currentTime + 0.15);
       } else {
-        osc.frequency.setValueAtTime(220, ctx.currentTime); // Low pitch error buzz
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
         gain.gain.setValueAtTime(0.4, ctx.currentTime);
         osc.start();
         osc.stop(ctx.currentTime + 0.3);
@@ -90,19 +90,19 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 font-sans">
       
       {/* Scanner Station Header Card */}
       <div className={`p-6 rounded-3xl border shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-        isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+        isDark ? 'bg-[#090d16] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
       }`}>
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#01BD9B] animate-ping"></span>
             <h2 className="text-lg font-extrabold">{gateObj.name}</h2>
           </div>
-          <p className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <Lock className="w-3.5 h-3.5 text-amber-500" />
+          <p className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            <Lock className="w-3.5 h-3.5 text-[#F7D06B]" />
             <span>Station Locked for Attendant: <strong>{currentUser?.name || 'David Miller'}</strong></span>
           </p>
         </div>
@@ -111,8 +111,8 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
           onClick={() => setSoundEnabled(!soundEnabled)}
           className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 ${
             soundEnabled 
-              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' 
-              : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
+              ? 'bg-[#01BD9B]/15 text-[#01BD9B] border-[#01BD9B]/30' 
+              : isDark ? 'bg-[#222222] border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
           }`}
         >
           {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -122,32 +122,32 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
 
       {/* Camera Viewfinder & Scanner Frame */}
       <div className={`p-6 rounded-3xl border shadow-2xl space-y-6 text-center ${
-        isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+        isDark ? 'bg-[#090d16] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
       }`}>
         <div className="space-y-2">
           <h3 className="text-base font-extrabold flex items-center justify-center gap-2">
-            <Camera className="w-5 h-5 text-indigo-500" />
+            <Camera className="w-5 h-5 text-[#1698E1]" />
             <span>Smartphone QR Ticket Scanner</span>
           </h3>
-          <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             Point your camera at the attendee's physical or digital QR code pass
           </p>
         </div>
 
         {/* Camera Video Viewfinder Element */}
         <div className={`relative min-h-[280px] rounded-2xl border flex flex-col items-center justify-center overflow-hidden ${
-          isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'
+          isDark ? 'bg-[#030712] border-slate-800' : 'bg-slate-100 border-slate-300'
         }`}>
           <div id="reader" className="w-full max-w-sm"></div>
 
           {!isScanning && (
             <div className="p-8 space-y-4 text-center">
-              <div className="w-20 h-20 mx-auto rounded-3xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500">
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-[#1698E1]/15 border border-[#1698E1]/30 flex items-center justify-center text-[#1698E1]">
                 <Camera className="w-10 h-10" />
               </div>
               <button
                 onClick={() => setIsScanning(true)}
-                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-extrabold text-xs shadow-xl shadow-indigo-600/25 transition-all"
+                className="px-6 py-3 rounded-2xl btn-brand-primary font-extrabold text-xs shadow-lg shadow-[#1698E1]/25 transition-all"
               >
                 Launch Smartphone Camera Scanner
               </button>
@@ -163,13 +163,13 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
               placeholder="Paste or type raw QR payload string (e.g. GP1.evt_tech_2026...)"
               value={manualPayloadInput}
               onChange={(e) => setManualPayloadInput(e.target.value)}
-              className={`flex-1 border rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 ${
-                isDark ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
+              className={`flex-1 border rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#1698E1] ${
+                isDark ? 'bg-[#030712] border-slate-800 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
               }`}
             />
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+              className="px-5 py-2.5 rounded-xl btn-brand-primary font-bold text-xs shadow"
             >
               Verify Code
             </button>
@@ -181,11 +181,11 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
       {scanResult && (
         <div className={`p-6 rounded-3xl border shadow-2xl space-y-4 animate-in fade-in duration-200 ${
           scanResult.success 
-            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100'
-            : 'bg-rose-950/40 border-rose-500/40 text-rose-100'
+            ? 'bg-[#01BD9B]/15 border-[#01BD9B]/40 text-emerald-100'
+            : 'bg-[#E55555]/15 border-[#E55555]/40 text-rose-100'
         }`}>
           <div className="flex items-center space-x-3">
-            <div className={`p-3 rounded-2xl ${scanResult.success ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+            <div className={`p-3 rounded-2xl ${scanResult.success ? 'bg-[#01BD9B]/20 text-[#01BD9B]' : 'bg-[#E55555]/20 text-[#E55555]'}`}>
               {scanResult.success ? <CheckCircle2 className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
             </div>
 
@@ -204,12 +204,12 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
 
               <div className="flex justify-between">
                 <span className="text-slate-400 font-medium">Delegate ID:</span>
-                <span className="font-mono font-extrabold text-amber-400">{scanResult.attendee.delegateId || scanResult.attendee.id}</span>
+                <span className="font-mono font-extrabold text-[#F7D06B]">{scanResult.attendee.delegateId || scanResult.attendee.id}</span>
               </div>
 
               <div className="flex justify-between">
                 <span className="text-slate-400 font-medium">Ticket Tier:</span>
-                <span className="font-bold text-cyan-300">{scanResult.attendee.tier}</span>
+                <span className="font-bold text-[#58BAD7]">{scanResult.attendee.tier}</span>
               </div>
 
               {scanResult.attendee.company && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, Eye, Save, Sparkles, CheckCircle2, Shield, Upload, Layers, Image as ImageIcon, X } from 'lucide-react';
+import { Palette, Eye, Save, Sparkles, CheckCircle2, Shield, Upload, Layers, Image as ImageIcon, X, Sliders, Lock, Unlock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function TicketTemplateEditor({ template, onSave }) {
@@ -17,6 +17,13 @@ export default function TicketTemplateEditor({ template, onSave }) {
     showCompany: true,
     showDelegateId: true,
     useCustomArtwork: false,
+    passFields: {
+      name: { x: 5, y: 70, fontSize: 22, color: '#ffffff', enabled: true },
+      delegateId: { x: 5, y: 82, fontSize: 16, color: '#f59e0b', enabled: true },
+      company: { x: 5, y: 76, fontSize: 15, color: '#38bdf8', enabled: true },
+      tier: { x: 5, y: 12, fontSize: 13, color: '#ffffff', enabled: true },
+      qrCode: { x: 70, y: 55, width: 24, height: 24, lockAspect: true, enabled: true }
+    },
     tierColors: {
       'VIP Access': '#d97706',        // Amber / Gold
       'General Admission': '#4f46e5', // Indigo
@@ -26,6 +33,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
     footerNote: 'Present this pass at designated gate. Non-transferable once checked in.'
   });
 
+  const [selectedField, setSelectedField] = useState('name');
   const [activeTierPreview, setActiveTierPreview] = useState('VIP Access');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [artworkAspectRatio, setArtworkAspectRatio] = useState(16 / 9);
@@ -43,6 +51,13 @@ export default function TicketTemplateEditor({ template, onSave }) {
         showCompany: template.showCompany ?? true,
         showDelegateId: template.showDelegateId ?? true,
         useCustomArtwork: template.useCustomArtwork || false,
+        passFields: template.passFields || {
+          name: { x: 5, y: 70, fontSize: 22, color: '#ffffff', enabled: true },
+          delegateId: { x: 5, y: 82, fontSize: 16, color: '#f59e0b', enabled: true },
+          company: { x: 5, y: 76, fontSize: 15, color: '#38bdf8', enabled: true },
+          tier: { x: 5, y: 12, fontSize: 13, color: '#ffffff', enabled: true },
+          qrCode: { x: 70, y: 55, width: 24, height: 24, lockAspect: true, enabled: true }
+        },
         tierColors: template.tierColors || {
           'VIP Access': '#d97706',
           'General Admission': '#4f46e5',
@@ -60,6 +75,55 @@ export default function TicketTemplateEditor({ template, onSave }) {
       tierColors: {
         ...formData.tierColors,
         [tier]: color
+      }
+    });
+  };
+
+  const handlePassFieldChange = (fieldKey, prop, val) => {
+    const currentPassFields = formData.passFields || {};
+    const currentQr = currentPassFields.qrCode || {};
+
+    if (fieldKey === 'qrCode') {
+      if ((prop === 'width' || prop === 'height') && currentQr.lockAspect) {
+        setFormData({
+          ...formData,
+          passFields: {
+            ...currentPassFields,
+            qrCode: {
+              ...currentQr,
+              width: val,
+              height: val
+            }
+          }
+        });
+        return;
+      }
+    }
+
+    setFormData({
+      ...formData,
+      passFields: {
+        ...currentPassFields,
+        [fieldKey]: {
+          ...currentPassFields[fieldKey],
+          [prop]: val
+        }
+      }
+    });
+  };
+
+  const toggleQrAspectLock = () => {
+    const currentQr = formData.passFields?.qrCode || {};
+    const nextLock = !currentQr.lockAspect;
+    setFormData({
+      ...formData,
+      passFields: {
+        ...formData.passFields,
+        qrCode: {
+          ...currentQr,
+          lockAspect: nextLock,
+          height: nextLock ? currentQr.width : currentQr.height
+        }
       }
     });
   };
@@ -94,6 +158,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
   };
 
   const currentHeaderColor = formData.tierColors[activeTierPreview] || formData.bannerBgColor;
+  const currentFieldConfig = (formData.passFields && formData.passFields[selectedField]) || {};
 
   return (
     <div className={`border rounded-3xl p-4 sm:p-6 shadow-xl space-y-6 ${
@@ -107,9 +172,9 @@ export default function TicketTemplateEditor({ template, onSave }) {
             <Palette className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold">Digital Ticket Pass Designer</h2>
+            <h2 className="text-base font-bold">Digital Ticket Pass & Movable Field Studio</h2>
             <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Upload custom pass artwork or customize tier header colors and executive card layouts
+              Upload custom artwork design and position Name, Delegate ID, Company, Tier & QR Code fields
             </p>
           </div>
         </div>
@@ -167,6 +232,165 @@ export default function TicketTemplateEditor({ template, onSave }) {
               )}
             </div>
           </div>
+
+          {/* Movable Field Overlay Controls (Active when Custom Artwork Mode Enabled) */}
+          {formData.useCustomArtwork && formData.cardImageUrl && (
+            <div className={`p-4 rounded-2xl border space-y-4 ${
+              isDark ? 'bg-slate-950 border-amber-500/30' : 'bg-amber-50/60 border-amber-200'
+            }`}>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                  <Sliders className="w-4 h-4" /> Movable Field Positioning Controls
+                </span>
+                <span className="text-[11px] text-slate-400">Position fields on artwork background</span>
+              </div>
+
+              {/* Select Target Field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-400">Select Field to Position:</label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 font-semibold">
+                  {[
+                    { key: 'name', label: '👤 Name' },
+                    { key: 'delegateId', label: '🆔 Delegate ID' },
+                    { key: 'company', label: '🏢 Company' },
+                    { key: 'tier', label: '🏷️ Tier' },
+                    { key: 'qrCode', label: '📱 QR Code' }
+                  ].map(f => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setSelectedField(f.key)}
+                      className={`py-2 px-2 rounded-xl border text-center transition-all ${
+                        selectedField === f.key
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500 font-bold'
+                          : isDark ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200' : 'bg-white border-slate-300 text-slate-700'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sliders for Selected Field */}
+              {selectedField && (
+                <div className="space-y-3 pt-2 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex justify-between font-semibold mb-1">
+                        <span>Horizontal (X %):</span>
+                        <span className="font-mono text-indigo-400">{currentFieldConfig.x || 0}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="85"
+                        value={currentFieldConfig.x || 0}
+                        onChange={(e) => handlePassFieldChange(selectedField, 'x', parseInt(e.target.value, 10))}
+                        className="w-full accent-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between font-semibold mb-1">
+                        <span>Vertical (Y %):</span>
+                        <span className="font-mono text-indigo-400">{currentFieldConfig.y || 0}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="85"
+                        value={currentFieldConfig.y || 0}
+                        onChange={(e) => handlePassFieldChange(selectedField, 'y', parseInt(e.target.value, 10))}
+                        className="w-full accent-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  {selectedField !== 'qrCode' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="flex justify-between font-semibold mb-1">
+                          <span>Font Size:</span>
+                          <span className="font-mono text-indigo-400">{currentFieldConfig.fontSize || 16}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="48"
+                          value={currentFieldConfig.fontSize || 16}
+                          onChange={(e) => handlePassFieldChange(selectedField, 'fontSize', parseInt(e.target.value, 10))}
+                          className="w-full accent-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <span className="font-semibold block mb-1">Text Color:</span>
+                        <input
+                          type="color"
+                          value={currentFieldConfig.color || '#ffffff'}
+                          onChange={(e) => handlePassFieldChange(selectedField, 'color', e.target.value)}
+                          className="w-full h-8 rounded-lg cursor-pointer bg-slate-900 border border-slate-700"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-amber-400 flex items-center gap-1">
+                          {currentFieldConfig.lockAspect ? <Lock className="w-3.5 h-3.5 text-emerald-400" /> : <Unlock className="w-3.5 h-3.5 text-rose-400" />}
+                          <span>Lock Aspect Ratio (1:1)</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={toggleQrAspectLock}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                            currentFieldConfig.lockAspect ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500' : 'bg-rose-500/20 text-rose-300 border-rose-500'
+                          }`}
+                        >
+                          {currentFieldConfig.lockAspect ? 'Square 1:1' : 'Custom W/H'}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="flex justify-between font-semibold mb-1">
+                            <span>Width (%):</span>
+                            <span className="font-mono text-indigo-400">{currentFieldConfig.width || 20}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="8"
+                            max="60"
+                            value={currentFieldConfig.width || 20}
+                            onChange={(e) => handlePassFieldChange('qrCode', 'width', parseInt(e.target.value, 10))}
+                            className="w-full accent-amber-500"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between font-semibold mb-1">
+                            <span>Height (%):</span>
+                            <span className="font-mono text-indigo-400">{currentFieldConfig.height || 20}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="8"
+                            max="60"
+                            disabled={currentFieldConfig.lockAspect}
+                            value={currentFieldConfig.height || 20}
+                            onChange={(e) => handlePassFieldChange('qrCode', 'height', parseInt(e.target.value, 10))}
+                            className="w-full accent-amber-500 disabled:opacity-40"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Access Level Tier Color Customizer */}
           <div className={`p-4 rounded-2xl border space-y-3 ${
@@ -247,60 +471,9 @@ export default function TicketTemplateEditor({ template, onSave }) {
             </div>
           </div>
 
-          {/* Visibility Toggles for Executive Clean Look */}
-          <div className={`p-4 rounded-2xl border space-y-2 ${
-            isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <span className="font-bold text-indigo-400 block mb-1">Executive Card Display Toggles</span>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.showDelegateId}
-                  onChange={(e) => setFormData({ ...formData, showDelegateId: e.target.checked })}
-                  className="w-4 h-4 accent-indigo-500 rounded"
-                />
-                <span className="font-semibold text-slate-300">Show Delegate ID</span>
-              </label>
-
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.showCompany}
-                  onChange={(e) => setFormData({ ...formData, showCompany: e.target.checked })}
-                  className="w-4 h-4 accent-indigo-500 rounded"
-                />
-                <span className="font-semibold text-slate-300">Show Company</span>
-              </label>
-
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.showContactInfo}
-                  onChange={(e) => setFormData({ ...formData, showContactInfo: e.target.checked })}
-                  className="w-4 h-4 accent-indigo-500 rounded"
-                />
-                <span className="font-semibold text-slate-300">Show Raw Email/Phone</span>
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold mb-1 text-slate-300">Footer Instructions</label>
-            <input
-              type="text"
-              value={formData.footerNote}
-              onChange={(e) => setFormData({ ...formData, footerNote: e.target.value })}
-              className={`w-full rounded-xl px-3 py-2 border focus:outline-none focus:border-indigo-500 ${
-                isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900'
-              }`}
-            />
-          </div>
-
         </div>
 
-        {/* Live Card Preview (1 Col) */}
+        {/* Live Interactive Card Preview (1 Col) */}
         <div className="space-y-3">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Eye className="w-4 h-4 text-cyan-400" /> Live Pass Preview ({activeTierPreview})
@@ -313,9 +486,9 @@ export default function TicketTemplateEditor({ template, onSave }) {
             }}
             className="relative rounded-3xl border border-slate-700 shadow-2xl overflow-hidden text-white transition-all"
           >
-            {/* Custom Artwork Overlay Mode */}
+            {/* Custom Artwork Mode with Movable Overlays */}
             {formData.useCustomArtwork && formData.cardImageUrl ? (
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full min-h-[280px]">
                 <img 
                   src={formData.cardImageUrl} 
                   alt="Custom Pass Artwork" 
@@ -323,34 +496,99 @@ export default function TicketTemplateEditor({ template, onSave }) {
                   className="w-full h-full object-cover" 
                 />
 
-                {/* Overlaid Delegate Pass Info */}
-                <div className="absolute inset-0 p-5 flex flex-col justify-between bg-slate-950/40 backdrop-blur-[1px]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] px-3 py-1 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
-                      {activeTierPreview}
-                    </span>
-                    {formData.showDelegateId && (
-                      <span className="text-xs font-mono font-extrabold text-amber-300 bg-black/60 px-2.5 py-1 rounded-xl border border-amber-500/30">
-                        ATS-2026-0002
-                      </span>
-                    )}
+                {/* Movable Name Overlay */}
+                {formData.passFields?.name?.enabled && (
+                  <div
+                    style={{
+                      left: `${formData.passFields.name.x}%`,
+                      top: `${formData.passFields.name.y}%`,
+                      fontSize: `${formData.passFields.name.fontSize}px`,
+                      color: formData.passFields.name.color
+                    }}
+                    onClick={() => setSelectedField('name')}
+                    className={`absolute cursor-pointer font-extrabold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
+                      selectedField === 'name' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-white/40'
+                    }`}
+                  >
+                    Sophia Chen
                   </div>
+                )}
 
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <h3 className="text-lg font-extrabold text-white">Sophia Chen</h3>
-                      {formData.showCompany && <div className="text-xs text-cyan-300 font-bold">Nexus AI Labs</div>}
-                    </div>
-
-                    <div className="bg-white p-2 rounded-xl shadow-xl">
-                      <img 
-                        src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GP1.DEMO" 
-                        alt="QR Code" 
-                        className="w-20 h-20 object-contain"
-                      />
-                    </div>
+                {/* Movable Delegate ID Overlay */}
+                {formData.passFields?.delegateId?.enabled && (
+                  <div
+                    style={{
+                      left: `${formData.passFields.delegateId.x}%`,
+                      top: `${formData.passFields.delegateId.y}%`,
+                      fontSize: `${formData.passFields.delegateId.fontSize}px`,
+                      color: formData.passFields.delegateId.color
+                    }}
+                    onClick={() => setSelectedField('delegateId')}
+                    className={`absolute cursor-pointer font-mono font-extrabold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
+                      selectedField === 'delegateId' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-amber-400/40'
+                    }`}
+                  >
+                    ATS-2026-0002
                   </div>
-                </div>
+                )}
+
+                {/* Movable Company Overlay */}
+                {formData.passFields?.company?.enabled && (
+                  <div
+                    style={{
+                      left: `${formData.passFields.company.x}%`,
+                      top: `${formData.passFields.company.y}%`,
+                      fontSize: `${formData.passFields.company.fontSize}px`,
+                      color: formData.passFields.company.color
+                    }}
+                    onClick={() => setSelectedField('company')}
+                    className={`absolute cursor-pointer font-semibold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
+                      selectedField === 'company' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-white/40'
+                    }`}
+                  >
+                    Nexus AI Labs
+                  </div>
+                )}
+
+                {/* Movable Tier Overlay */}
+                {formData.passFields?.tier?.enabled && (
+                  <div
+                    style={{
+                      left: `${formData.passFields.tier.x}%`,
+                      top: `${formData.passFields.tier.y}%`,
+                      fontSize: `${formData.passFields.tier.fontSize}px`,
+                      color: formData.passFields.tier.color
+                    }}
+                    onClick={() => setSelectedField('tier')}
+                    className={`absolute cursor-pointer font-bold transition-all px-1.5 py-0.5 rounded border whitespace-nowrap ${
+                      selectedField === 'tier' ? 'border-amber-400 bg-amber-500/30 ring-2 ring-amber-400' : 'border-transparent hover:border-white/40'
+                    }`}
+                  >
+                    {activeTierPreview}
+                  </div>
+                )}
+
+                {/* Movable QR Code Overlay */}
+                {formData.passFields?.qrCode?.enabled && (
+                  <div
+                    style={{
+                      left: `${formData.passFields.qrCode.x}%`,
+                      top: `${formData.passFields.qrCode.y}%`,
+                      width: `${formData.passFields.qrCode.width}%`,
+                      height: `${formData.passFields.qrCode.height}%`
+                    }}
+                    onClick={() => setSelectedField('qrCode')}
+                    className={`absolute cursor-pointer bg-white p-1.5 rounded-xl shadow-2xl border flex items-center justify-center ${
+                      selectedField === 'qrCode' ? 'border-amber-400 ring-4 ring-amber-500/40' : 'border-slate-300'
+                    }`}
+                  >
+                    <img 
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GP1.DEMO" 
+                      alt="QR Code" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               /* Standard Executive Mode */
@@ -375,9 +613,6 @@ export default function TicketTemplateEditor({ template, onSave }) {
                       <h3 className="text-lg font-extrabold text-white">Sophia Chen</h3>
                       {formData.showCompany && (
                         <div className="text-xs text-cyan-400 font-bold">Nexus AI Labs</div>
-                      )}
-                      {formData.showContactInfo && (
-                        <div className="text-[11px] text-slate-400 mt-1">sophia.chen@nexusai.io</div>
                       )}
                     </div>
 

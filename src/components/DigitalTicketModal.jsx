@@ -37,6 +37,14 @@ export default function DigitalTicketModal({ passData, onClose }) {
     }
   };
 
+  const passFields = template?.passFields || {
+    name: { x: 5, y: 70, fontSize: 22, color: '#ffffff', enabled: true },
+    delegateId: { x: 5, y: 82, fontSize: 16, color: '#f59e0b', enabled: true },
+    company: { x: 5, y: 76, fontSize: 15, color: '#38bdf8', enabled: true },
+    tier: { x: 5, y: 12, fontSize: 13, color: '#ffffff', enabled: true },
+    qrCode: { x: 70, y: 55, width: 24, height: 24, enabled: true }
+  };
+
   // Render and export the ENTIRE Passcard as a high-resolution PNG image
   const handleDownloadFullPassPng = () => {
     setDownloading(true);
@@ -57,55 +65,50 @@ export default function DigitalTicketModal({ passData, onClose }) {
         // Draw custom artwork background
         ctx.drawImage(artImg, 0, 0, canvas.width, canvas.height);
 
-        // Dark gradient overlay for text readability
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, 'rgba(3, 7, 18, 0.4)');
-        gradient.addColorStop(1, 'rgba(3, 7, 18, 0.7)');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw Tier Badge
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-        ctx.beginPath();
-        ctx.roundRect(canvas.width - 240, 40, 200, 50, 25);
-        ctx.fill();
-
-        ctx.font = 'bold 22px Inter, sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.fillText(attendee.tier, canvas.width - 140, 73);
-        ctx.textAlign = 'left';
-
-        // Draw Attendee Name
-        ctx.font = 'bold 44px Inter, sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(attendee.name, 50, canvas.height - 120);
-
-        if (attendee.company) {
-          ctx.font = 'bold 26px Inter, sans-serif';
-          ctx.fillStyle = '#38bdf8';
-          ctx.fillText(`🏢 ${attendee.company}`, 50, canvas.height - 75);
+        // Draw Movable Name
+        if (passFields.name?.enabled) {
+          ctx.font = `bold ${passFields.name.fontSize * 1.6}px Inter, sans-serif`;
+          ctx.fillStyle = passFields.name.color || '#ffffff';
+          ctx.fillText(attendee.name, (passFields.name.x / 100) * canvas.width, (passFields.name.y / 100) * canvas.height);
         }
 
-        ctx.font = 'bold 24px JetBrains Mono, monospace';
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillText(`ID: ${delegateIdText}`, 50, canvas.height - 35);
+        // Draw Movable Delegate ID
+        if (passFields.delegateId?.enabled) {
+          ctx.font = `bold ${passFields.delegateId.fontSize * 1.6}px JetBrains Mono, monospace`;
+          ctx.fillStyle = passFields.delegateId.color || '#f59e0b';
+          ctx.fillText(delegateIdText, (passFields.delegateId.x / 100) * canvas.width, (passFields.delegateId.y / 100) * canvas.height);
+        }
 
-        // Draw QR Code
-        if (qrDataUrl) {
+        // Draw Movable Company
+        if (passFields.company?.enabled && attendee.company) {
+          ctx.font = `bold ${passFields.company.fontSize * 1.6}px Inter, sans-serif`;
+          ctx.fillStyle = passFields.company.color || '#38bdf8';
+          ctx.fillText(attendee.company, (passFields.company.x / 100) * canvas.width, (passFields.company.y / 100) * canvas.height);
+        }
+
+        // Draw Movable Tier
+        if (passFields.tier?.enabled) {
+          ctx.font = `bold ${passFields.tier.fontSize * 1.6}px Inter, sans-serif`;
+          ctx.fillStyle = passFields.tier.color || '#ffffff';
+          ctx.fillText(attendee.tier, (passFields.tier.x / 100) * canvas.width, (passFields.tier.y / 100) * canvas.height);
+        }
+
+        // Draw Movable QR Code Box
+        if (passFields.qrCode?.enabled && qrDataUrl) {
           const qrImg = new Image();
           qrImg.src = qrDataUrl;
           qrImg.onload = () => {
-            const qrSize = Math.round(canvas.height * 0.35);
-            const qrX = canvas.width - qrSize - 40;
-            const qrY = canvas.height - qrSize - 40;
+            const qrX = (passFields.qrCode.x / 100) * canvas.width;
+            const qrY = (passFields.qrCode.y / 100) * canvas.height;
+            const qrW = (passFields.qrCode.width / 100) * canvas.width;
+            const qrH = (passFields.qrCode.height / 100) * canvas.height;
 
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.roundRect(qrX, qrY, qrSize, qrSize, 20);
+            ctx.roundRect(qrX, qrY, qrW, qrH, 16);
             ctx.fill();
 
-            ctx.drawImage(qrImg, qrX + 10, qrY + 10, qrSize - 20, qrSize - 20);
+            ctx.drawImage(qrImg, qrX + 8, qrY + 8, qrW - 16, qrH - 16);
 
             const link = document.createElement('a');
             link.download = `${delegateIdText}_${attendee.name.replace(/\s+/g, '_')}_CustomPassCard.png`;
@@ -174,12 +177,6 @@ export default function DigitalTicketModal({ passData, onClose }) {
       ctx.font = 'bold 26px Inter, sans-serif';
       ctx.fillStyle = '#38bdf8';
       ctx.fillText(`🏢 ${attendee.company}`, 50, 340);
-    }
-
-    if (template?.showContactInfo) {
-      ctx.font = '22px Inter, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText(`${attendee.email} • ${attendee.phone || ''}`, 50, 380);
     }
 
     // Delegate ID Badge Container
@@ -282,8 +279,8 @@ export default function DigitalTicketModal({ passData, onClose }) {
           className="relative rounded-3xl border border-slate-700 shadow-2xl overflow-hidden text-white transition-all"
         >
           {isCustomArtwork ? (
-            /* Custom Artwork Pass Display */
-            <div className="relative w-full h-full min-h-[260px]">
+            /* Custom Artwork Pass Display with Positioned Fields */
+            <div className="relative w-full h-full min-h-[280px]">
               <img 
                 src={template.cardImageUrl} 
                 alt="Custom Pass Artwork" 
@@ -291,31 +288,80 @@ export default function DigitalTicketModal({ passData, onClose }) {
                 className="w-full h-full object-cover"
               />
 
-              <div className="absolute inset-0 p-5 flex flex-col justify-between bg-slate-950/40 backdrop-blur-[1px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs px-3.5 py-1 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
-                    {attendee.tier}
-                  </span>
-                  {template?.showDelegateId !== false && (
-                    <span className="text-xs font-mono font-extrabold text-amber-300 bg-black/70 px-3 py-1 rounded-xl border border-amber-500/40 shadow">
-                      {delegateIdText}
-                    </span>
-                  )}
+              {/* Movable Name */}
+              {passFields.name?.enabled && (
+                <div
+                  style={{
+                    left: `${passFields.name.x}%`,
+                    top: `${passFields.name.y}%`,
+                    fontSize: `${passFields.name.fontSize}px`,
+                    color: passFields.name.color || '#ffffff'
+                  }}
+                  className="absolute font-extrabold whitespace-nowrap"
+                >
+                  {attendee.name}
                 </div>
+              )}
 
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <h3 className="text-xl font-extrabold text-white leading-tight">{attendee.name}</h3>
-                    {template?.showCompany !== false && attendee.company && (
-                      <div className="text-xs text-cyan-300 font-bold mt-0.5">{attendee.company}</div>
-                    )}
-                  </div>
-
-                  <div className="bg-white p-2 rounded-2xl shadow-2xl border border-slate-300 flex-shrink-0">
-                    <img src={qrDataUrl} alt="QR Code" className="w-24 h-24 object-contain" />
-                  </div>
+              {/* Movable Delegate ID */}
+              {passFields.delegateId?.enabled && (
+                <div
+                  style={{
+                    left: `${passFields.delegateId.x}%`,
+                    top: `${passFields.delegateId.y}%`,
+                    fontSize: `${passFields.delegateId.fontSize}px`,
+                    color: passFields.delegateId.color || '#f59e0b'
+                  }}
+                  className="absolute font-mono font-extrabold whitespace-nowrap"
+                >
+                  {delegateIdText}
                 </div>
-              </div>
+              )}
+
+              {/* Movable Company */}
+              {passFields.company?.enabled && attendee.company && (
+                <div
+                  style={{
+                    left: `${passFields.company.x}%`,
+                    top: `${passFields.company.y}%`,
+                    fontSize: `${passFields.company.fontSize}px`,
+                    color: passFields.company.color || '#38bdf8'
+                  }}
+                  className="absolute font-semibold whitespace-nowrap"
+                >
+                  {attendee.company}
+                </div>
+              )}
+
+              {/* Movable Tier */}
+              {passFields.tier?.enabled && (
+                <div
+                  style={{
+                    left: `${passFields.tier.x}%`,
+                    top: `${passFields.tier.y}%`,
+                    fontSize: `${passFields.tier.fontSize}px`,
+                    color: passFields.tier.color || '#ffffff'
+                  }}
+                  className="absolute font-bold whitespace-nowrap"
+                >
+                  {attendee.tier}
+                </div>
+              )}
+
+              {/* Movable QR Code */}
+              {passFields.qrCode?.enabled && qrDataUrl && (
+                <div
+                  style={{
+                    left: `${passFields.qrCode.x}%`,
+                    top: `${passFields.qrCode.y}%`,
+                    width: `${passFields.qrCode.width}%`,
+                    height: `${passFields.qrCode.height}%`
+                  }}
+                  className="absolute bg-white p-2 rounded-2xl shadow-2xl border border-slate-300 flex items-center justify-center"
+                >
+                  <img src={qrDataUrl} alt="QR Code" className="w-full h-full object-contain" />
+                </div>
+              )}
             </div>
           ) : (
             /* Standard Executive Pass Display */
@@ -343,9 +389,6 @@ export default function DigitalTicketModal({ passData, onClose }) {
                         <Building2 className="w-4 h-4" />
                         <span>{attendee.company}</span>
                       </div>
-                    )}
-                    {template?.showContactInfo && (
-                      <div className="text-xs text-slate-400 mt-1">{attendee.email} • {attendee.phone}</div>
                     )}
                   </div>
 

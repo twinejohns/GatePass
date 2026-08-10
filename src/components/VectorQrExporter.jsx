@@ -76,20 +76,22 @@ export default function VectorQrExporter({ eventId }) {
   };
 
   return (
-    <div className={`border rounded-3xl p-4 sm:p-6 shadow-xl space-y-6 ${
-      isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+    <div className={`border rounded-3xl p-4 sm:p-6 shadow-xl space-y-6 font-sans transition-colors duration-300 ${
+      isDark ? 'bg-[#090d16] border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
     }`}>
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b ${
+        isDark ? 'border-slate-800' : 'border-slate-200'
+      }`}>
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex-shrink-0">
+          <div className="p-2.5 rounded-xl bg-[#1698E1]/15 text-[#1698E1] border border-[#1698E1]/30 flex-shrink-0">
             <FileArchive className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold">Bulk Vector QR Code Asset Exporter</h2>
-            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Export resolution-independent vector SVG/PDF QR codes with Delegate IDs for invitation printers
+            <h2 className="text-base font-extrabold">Bulk Vector QR Code Asset Exporter</h2>
+            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Export resolution-independent vector SVG QR codes with Delegate IDs for invitation printers
             </p>
           </div>
         </div>
@@ -97,7 +99,7 @@ export default function VectorQrExporter({ eventId }) {
         <button
           onClick={downloadAllAsZip}
           disabled={vectorAssets.length === 0 || zipping}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-50 flex-shrink-0 transition-all"
+          className="px-4 py-2.5 rounded-xl btn-brand-primary font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#1698E1]/25 disabled:opacity-50 flex-shrink-0 transition-all"
         >
           {zipping ? (
             <>
@@ -114,31 +116,39 @@ export default function VectorQrExporter({ eventId }) {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-xs text-slate-400">Generating vector SVG payloads for attendees...</div>
+        <div className={`text-center py-12 text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          Generating high-resolution vector SVG payloads for attendees...
+        </div>
       ) : (
-        /* Grid-Fitted Cards Layout */
+        /* High-Visibility Grid-Fitted Cards Layout */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {vectorAssets.map(asset => {
             const delegateIdStr = asset.delegateId || asset.id;
             return (
               <div key={asset.id} className={`p-4 rounded-2xl border flex flex-col justify-between space-y-3 transition-all ${
-                isDark ? 'bg-slate-950 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                isDark 
+                  ? 'bg-[#030712] border-slate-800 hover:border-slate-700' 
+                  : 'bg-white border-slate-300 shadow-md hover:shadow-xl hover:border-[#1698E1]'
               }`}>
                 
                 {/* Header Info */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold truncate pr-1">{asset.name}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-extrabold flex-shrink-0 flex items-center gap-0.5">
+                    <span className="text-xs font-extrabold truncate pr-1">{asset.name}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono font-extrabold flex-shrink-0 flex items-center gap-0.5 border ${
+                      isDark 
+                        ? 'bg-[#F7D06B]/20 text-[#F7D06B] border-[#F7D06B]/40' 
+                        : 'bg-[#1698E1]/15 text-[#1D69D6] border-[#1698E1]/30'
+                    }`}>
                       <Hash className="w-2.5 h-2.5" /> {delegateIdStr}
                     </span>
                   </div>
-                  <div className="text-xs text-indigo-400 font-semibold truncate">{asset.company || asset.email}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{asset.tier}</div>
+                  <div className="text-xs text-[#1698E1] font-bold truncate">{asset.company || asset.email}</div>
+                  <div className={`text-[11px] font-medium truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{asset.tier}</div>
                 </div>
 
-                {/* Constrained SVG Container Box */}
-                <div className="bg-white p-3 rounded-2xl w-full max-w-[180px] aspect-square mx-auto flex items-center justify-center border border-slate-300 shadow-inner overflow-hidden">
+                {/* Constrained High-Contrast White SVG Container Box */}
+                <div className="bg-white p-3.5 rounded-2xl w-full max-w-[190px] aspect-square mx-auto flex items-center justify-center border border-slate-300 shadow-md overflow-hidden">
                   <div 
                     dangerouslySetInnerHTML={{ __html: asset.svgData }} 
                     className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full [&>svg]:object-contain" 
@@ -146,23 +156,31 @@ export default function VectorQrExporter({ eventId }) {
                 </div>
 
                 {/* Delegate ID Banner under QR Code */}
-                <div className="bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg text-center font-mono font-bold text-[11px] text-amber-400 truncate">
+                <div className={`px-2.5 py-1 rounded-xl text-center font-mono font-extrabold text-[11px] truncate border ${
+                  isDark 
+                    ? 'bg-[#222222] border-slate-800 text-[#F7D06B]' 
+                    : 'bg-slate-100 border-slate-300 text-[#1D69D6]'
+                }`}>
                   Delegate ID: {delegateIdStr}
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-800/40 text-xs">
+                <div className={`flex items-center gap-2 pt-2 border-t text-xs ${
+                  isDark ? 'border-slate-800' : 'border-slate-200'
+                }`}>
                   <button
                     onClick={() => downloadSingleSvgFile(asset)}
-                    className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow"
+                    className="flex-1 py-2 rounded-xl btn-brand-primary font-bold text-xs flex items-center justify-center gap-1 shadow transition-all"
                   >
-                    <Download className="w-3.5 h-3.5" /> Download SVG
+                    <Download className="w-3.5 h-3.5" /> SVG
                   </button>
 
                   <button
                     onClick={() => copySvgText(asset)}
-                    className={`p-2 rounded-xl border text-xs font-semibold ${
-                      copiedId === asset.id ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700'
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                      copiedId === asset.id 
+                        ? 'bg-[#01BD9B]/20 text-[#01BD9B] border-[#01BD9B]' 
+                        : isDark ? 'bg-[#222222] text-slate-300 border-slate-700 hover:text-white' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                     }`}
                     title="Copy Raw SVG XML Code"
                   >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, ShieldCheck, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Lock, MapPin, Volume2, VolumeX } from 'lucide-react';
+import { Camera, ShieldCheck, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Lock, MapPin, Volume2, VolumeX, QrCode, ArrowRight, X } from 'lucide-react';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import { useTheme } from '../context/ThemeContext';
 
@@ -63,6 +63,11 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
     if (!manualPayloadInput.trim()) return;
     handleScanSuccess(manualPayloadInput.trim());
     setManualPayloadInput('');
+  };
+
+  const handleScanNextTicket = () => {
+    setScanResult(null);
+    setIsScanning(true);
   };
 
   const playBeepSound = (isSuccess) => {
@@ -177,80 +182,118 @@ export default function ScannerInterface({ event, currentUser, onScanPayload }) 
         </form>
       </div>
 
-      {/* Live Scan Verification Result Banner (High Contrast Green & Red Alerts) */}
+      {/* Live Scan Verification Result Pop-Up Modal */}
       {scanResult && (
-        <div className={`p-6 rounded-3xl border-2 shadow-2xl space-y-4 animate-in fade-in duration-200 ${
-          scanResult.success 
-            ? isDark
-              ? 'bg-emerald-950/80 border-[#01BD9B] text-emerald-100'
-              : 'bg-emerald-50 border-[#01BD9B] text-emerald-950 shadow-emerald-500/10'
-            : isDark
-              ? 'bg-red-950/80 border-[#E55555] text-red-100'
-              : 'bg-red-50 border-[#E55555] text-red-950 shadow-red-500/10'
-        }`}>
-          <div className="flex items-center space-x-3.5">
-            <div className={`p-3.5 rounded-2xl flex-shrink-0 ${
-              scanResult.success 
-                ? 'bg-[#01BD9B]/20 text-[#01BD9B]' 
-                : 'bg-[#E55555]/20 text-[#E55555]'
-            }`}>
-              {scanResult.success ? <CheckCircle2 className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className={`relative max-w-lg w-full rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border-2 transition-all ${
+            scanResult.success 
+              ? isDark
+                ? 'bg-[#090d16] border-[#01BD9B] text-emerald-100'
+                : 'bg-emerald-50 border-[#01BD9B] text-emerald-950 shadow-emerald-500/20'
+              : isDark
+                ? 'bg-[#090d16] border-[#E55555] text-red-100'
+                : 'bg-red-50 border-[#E55555] text-red-950 shadow-red-500/20'
+          }`}>
+            
+            {/* Modal Close Button */}
+            <button
+              onClick={() => setScanResult(null)}
+              className={`absolute top-4 right-4 p-2 rounded-xl transition-all ${
+                isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header Icon & Message */}
+            <div className="flex items-start space-x-4">
+              <div className={`p-4 rounded-2xl flex-shrink-0 ${
+                scanResult.success 
+                  ? 'bg-[#01BD9B]/20 text-[#01BD9B]' 
+                  : 'bg-[#E55555]/20 text-[#E55555]'
+              }`}>
+                {scanResult.success ? <CheckCircle2 className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
+              </div>
+
+              <div className="pr-6 space-y-1">
+                <span className={`text-xs font-extrabold uppercase tracking-widest block ${
+                  scanResult.success 
+                    ? isDark ? 'text-[#01BD9B]' : 'text-emerald-800'
+                    : isDark ? 'text-[#E55555]' : 'text-red-800'
+                }`}>
+                  {scanResult.success ? '✔ ACCESS GRANTED' : '✖ SCAN VERIFICATION ALERT'}
+                </span>
+                <h3 className={`text-xl font-extrabold leading-snug ${
+                  scanResult.success 
+                    ? isDark ? 'text-emerald-100' : 'text-emerald-950'
+                    : isDark ? 'text-red-100' : 'text-red-950'
+                }`}>
+                  {scanResult.message}
+                </h3>
+              </div>
             </div>
 
-            <div>
-              <span className={`text-[10px] font-extrabold uppercase tracking-widest block ${
-                scanResult.success 
-                  ? isDark ? 'text-emerald-400' : 'text-emerald-800'
-                  : isDark ? 'text-red-400' : 'text-red-800'
+            {/* Attendee Details Card Overlay */}
+            {scanResult.attendee && (
+              <div className={`p-4 sm:p-5 rounded-2xl border space-y-3 text-xs font-sans shadow-md ${
+                isDark 
+                  ? 'bg-[#030712] border-slate-800 text-slate-100' 
+                  : 'bg-white border-slate-300 text-slate-900'
               }`}>
-                VERIFICATION RESULT
-              </span>
-              <h3 className={`text-lg font-extrabold leading-snug ${
-                scanResult.success 
-                  ? isDark ? 'text-emerald-100' : 'text-emerald-950'
-                  : isDark ? 'text-red-100' : 'text-red-950'
-              }`}>
-                {scanResult.message}
-              </h3>
-            </div>
-          </div>
-
-          {/* Attendee Details Card Overlay inside Result Banner */}
-          {scanResult.attendee && (
-            <div className={`p-4 rounded-2xl border space-y-2.5 text-xs font-sans ${
-              isDark 
-                ? 'bg-[#030712] border-slate-800 text-slate-100' 
-                : 'bg-white border-slate-300 text-slate-900 shadow-md'
-            }`}>
-              <div className="flex justify-between items-center">
-                <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Attendee Name:</span>
-                <span className={`font-extrabold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {scanResult.attendee.name}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Delegate ID:</span>
-                <span className={`font-mono font-extrabold ${isDark ? 'text-[#F7D06B]' : 'text-[#1D69D6]'}`}>
-                  {scanResult.attendee.delegateId || scanResult.attendee.id}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Ticket Tier:</span>
-                <span className="font-extrabold text-[#1698E1]">{scanResult.attendee.tier}</span>
-              </div>
-
-              {scanResult.attendee.company && (
-                <div className="flex justify-between items-center">
-                  <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Company:</span>
-                  <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                    {scanResult.attendee.company}
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200/40 dark:border-slate-800">
+                  <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Attendee Name:</span>
+                  <span className={`font-extrabold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {scanResult.attendee.name}
                   </span>
                 </div>
-              )}
+
+                <div className="flex justify-between items-center">
+                  <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Delegate ID:</span>
+                  <span className={`font-mono font-extrabold text-sm ${isDark ? 'text-[#F7D06B]' : 'text-[#1D69D6]'}`}>
+                    {scanResult.attendee.delegateId || scanResult.attendee.id}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Ticket Tier:</span>
+                  <span className="font-extrabold text-sm text-[#1698E1]">{scanResult.attendee.tier}</span>
+                </div>
+
+                {scanResult.attendee.company && (
+                  <div className="flex justify-between items-center">
+                    <span className={`font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Company:</span>
+                    <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      {scanResult.attendee.company}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bottom Modal Action Buttons: New Scan Button */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={handleScanNextTicket}
+                className="flex-1 py-3.5 px-5 rounded-2xl btn-brand-primary font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#1698E1]/30 transition-all"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Scan Next Ticket</span>
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+
+              <button
+                onClick={() => setScanResult(null)}
+                className={`py-3.5 px-5 rounded-2xl font-bold text-xs border transition-all ${
+                  isDark 
+                    ? 'bg-[#222222] border-slate-700 text-slate-300 hover:text-white' 
+                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                Close Window
+              </button>
             </div>
-          )}
+
+          </div>
         </div>
       )}
 

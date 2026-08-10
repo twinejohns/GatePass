@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, Eye, Save, Sparkles, CheckCircle2, Shield, Upload, Layers } from 'lucide-react';
+import { Palette, Eye, Save, Sparkles, CheckCircle2, Shield, Upload, Layers, Image as ImageIcon, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function TicketTemplateEditor({ template, onSave }) {
@@ -16,6 +16,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
     showContactInfo: false,
     showCompany: true,
     showDelegateId: true,
+    useCustomArtwork: false,
     tierColors: {
       'VIP Access': '#d97706',        // Amber / Gold
       'General Admission': '#4f46e5', // Indigo
@@ -27,6 +28,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
 
   const [activeTierPreview, setActiveTierPreview] = useState('VIP Access');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [artworkAspectRatio, setArtworkAspectRatio] = useState(16 / 9);
 
   useEffect(() => {
     if (template) {
@@ -40,6 +42,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
         showContactInfo: template.showContactInfo || false,
         showCompany: template.showCompany ?? true,
         showDelegateId: template.showDelegateId ?? true,
+        useCustomArtwork: template.useCustomArtwork || false,
         tierColors: template.tierColors || {
           'VIP Access': '#d97706',
           'General Admission': '#4f46e5',
@@ -66,9 +69,20 @@ export default function TicketTemplateEditor({ template, onSave }) {
     if (file) {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        setFormData({ ...formData, cardImageUrl: evt.target.result });
+        setFormData({ 
+          ...formData, 
+          cardImageUrl: evt.target.result,
+          useCustomArtwork: true 
+        });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      setArtworkAspectRatio(naturalWidth / naturalHeight);
     }
   };
 
@@ -95,7 +109,7 @@ export default function TicketTemplateEditor({ template, onSave }) {
           <div>
             <h2 className="text-base font-bold">Digital Ticket Pass Designer</h2>
             <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Customize executive card styles, access tier header colors, and custom artwork
+              Upload custom pass artwork or customize tier header colors and executive card layouts
             </p>
           </div>
         </div>
@@ -114,6 +128,46 @@ export default function TicketTemplateEditor({ template, onSave }) {
         {/* Controls Panel (2 Cols) */}
         <div className="lg:col-span-2 space-y-6 text-xs">
           
+          {/* Custom Design Background Upload */}
+          <div className={`p-4 rounded-2xl border space-y-3 ${
+            isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span className="font-bold text-cyan-400 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4" /> Custom Pass Design Artwork
+              </span>
+              {formData.cardImageUrl && (
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.useCustomArtwork}
+                    onChange={(e) => setFormData({ ...formData, useCustomArtwork: e.target.checked })}
+                    className="w-4 h-4 accent-cyan-500 rounded"
+                  />
+                  <span className="font-bold text-slate-200">Use Custom Artwork Mode</span>
+                </label>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow">
+                <Upload className="w-4 h-4" />
+                <span>{formData.cardImageUrl ? 'Replace Custom Pass Artwork' : 'Upload Custom Pass Background Design'}</span>
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
+
+              {formData.cardImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, cardImageUrl: '', useCustomArtwork: false })}
+                  className="text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1"
+                >
+                  <X className="w-4 h-4" /> Remove Artwork
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Access Level Tier Color Customizer */}
           <div className={`p-4 rounded-2xl border space-y-3 ${
             isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
@@ -249,65 +303,109 @@ export default function TicketTemplateEditor({ template, onSave }) {
         {/* Live Card Preview (1 Col) */}
         <div className="space-y-3">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Eye className="w-4 h-4 text-cyan-400" /> Live Executive Pass Preview ({activeTierPreview})
+            <Eye className="w-4 h-4 text-cyan-400" /> Live Pass Preview ({activeTierPreview})
           </span>
 
           <div 
-            style={{ backgroundColor: formData.cardBgColor }}
-            className="rounded-3xl border border-slate-700 shadow-2xl overflow-hidden text-white transition-all"
+            style={{ 
+              backgroundColor: formData.cardBgColor,
+              aspectRatio: formData.useCustomArtwork && formData.cardImageUrl ? `${artworkAspectRatio}` : 'auto'
+            }}
+            className="relative rounded-3xl border border-slate-700 shadow-2xl overflow-hidden text-white transition-all"
           >
-            {/* Tier Color Header Banner */}
-            <div 
-              style={{ backgroundColor: currentHeaderColor }}
-              className="p-4 flex items-center justify-between transition-colors duration-300"
-            >
-              <div>
-                <span className="text-[9px] font-extrabold tracking-widest uppercase text-white/80">OFFICIAL EVENT PASS</span>
-                <h4 className="text-sm font-extrabold text-white leading-snug">{formData.headerTitle}</h4>
-              </div>
-              <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
-                {activeTierPreview}
-              </span>
-            </div>
+            {/* Custom Artwork Overlay Mode */}
+            {formData.useCustomArtwork && formData.cardImageUrl ? (
+              <div className="relative w-full h-full">
+                <img 
+                  src={formData.cardImageUrl} 
+                  alt="Custom Pass Artwork" 
+                  onLoad={handleImageLoad}
+                  className="w-full h-full object-cover" 
+                />
 
-            {/* Body */}
-            <div className="p-5 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ATTENDEE DELEGATE</span>
-                  <h3 className="text-lg font-extrabold text-white">Sophia Chen</h3>
-                  {formData.showCompany && (
-                    <div className="text-xs text-cyan-400 font-bold">Nexus AI Labs</div>
-                  )}
-                  {formData.showContactInfo && (
-                    <div className="text-[11px] text-slate-400 mt-1">sophia.chen@nexusai.io</div>
-                  )}
-                </div>
-
-                {formData.showDelegateId && (
-                  <div className="bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-xl text-center">
-                    <span className="text-[8px] uppercase tracking-wider text-amber-400 font-bold block">DELEGATE ID</span>
-                    <span className="text-xs font-mono font-extrabold text-amber-300">ATS-2026-0002</span>
+                {/* Overlaid Delegate Pass Info */}
+                <div className="absolute inset-0 p-5 flex flex-col justify-between bg-slate-950/40 backdrop-blur-[1px]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] px-3 py-1 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
+                      {activeTierPreview}
+                    </span>
+                    {formData.showDelegateId && (
+                      <span className="text-xs font-mono font-extrabold text-amber-300 bg-black/60 px-2.5 py-1 rounded-xl border border-amber-500/30">
+                        ATS-2026-0002
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* QR Box */}
-              <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-col items-center justify-center space-y-2">
-                <div className="bg-white p-2.5 rounded-xl shadow-xl">
-                  <img 
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GP1.DEMO" 
-                    alt="QR Code" 
-                    className="w-32 h-32 object-contain"
-                  />
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-white">Sophia Chen</h3>
+                      {formData.showCompany && <div className="text-xs text-cyan-300 font-bold">Nexus AI Labs</div>}
+                    </div>
+
+                    <div className="bg-white p-2 rounded-xl shadow-xl">
+                      <img 
+                        src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GP1.DEMO" 
+                        alt="QR Code" 
+                        className="w-20 h-20 object-contain"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <span className="text-[10px] font-mono text-amber-400 font-bold">ATS-2026-0002</span>
               </div>
+            ) : (
+              /* Standard Executive Mode */
+              <>
+                <div 
+                  style={{ backgroundColor: currentHeaderColor }}
+                  className="p-4 flex items-center justify-between transition-colors duration-300"
+                >
+                  <div>
+                    <span className="text-[9px] font-extrabold tracking-widest uppercase text-white/80">OFFICIAL EVENT PASS</span>
+                    <h4 className="text-sm font-extrabold text-white leading-snug">{formData.headerTitle}</h4>
+                  </div>
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
+                    {activeTierPreview}
+                  </span>
+                </div>
 
-              <div className="text-[9px] text-slate-400 text-center border-t border-slate-800/60 pt-2">
-                {formData.footerNote}
-              </div>
-            </div>
+                <div className="p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ATTENDEE DELEGATE</span>
+                      <h3 className="text-lg font-extrabold text-white">Sophia Chen</h3>
+                      {formData.showCompany && (
+                        <div className="text-xs text-cyan-400 font-bold">Nexus AI Labs</div>
+                      )}
+                      {formData.showContactInfo && (
+                        <div className="text-[11px] text-slate-400 mt-1">sophia.chen@nexusai.io</div>
+                      )}
+                    </div>
+
+                    {formData.showDelegateId && (
+                      <div className="bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-xl text-center">
+                        <span className="text-[8px] uppercase tracking-wider text-amber-400 font-bold block">DELEGATE ID</span>
+                        <span className="text-xs font-mono font-extrabold text-amber-300">ATS-2026-0002</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-col items-center justify-center space-y-2">
+                    <div className="bg-white p-2.5 rounded-xl shadow-xl">
+                      <img 
+                        src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GP1.DEMO" 
+                        alt="QR Code" 
+                        className="w-32 h-32 object-contain"
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-amber-400 font-bold">ATS-2026-0002</span>
+                  </div>
+
+                  <div className="text-[9px] text-slate-400 text-center border-t border-slate-800/60 pt-2">
+                    {formData.footerNote}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

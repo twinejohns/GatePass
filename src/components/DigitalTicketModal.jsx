@@ -11,6 +11,7 @@ export default function DigitalTicketModal({ passData, onClose }) {
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [currentPass, setCurrentPass] = useState(passData);
   const [downloading, setDownloading] = useState(false);
+  const [artworkAspectRatio, setArtworkAspectRatio] = useState(16 / 9);
 
   useEffect(() => {
     if (passData) {
@@ -29,13 +30,101 @@ export default function DigitalTicketModal({ passData, onClose }) {
     ? template.tierColors[attendee.tier] 
     : (template?.bannerBgColor || '#4f46e5');
 
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      setArtworkAspectRatio(naturalWidth / naturalHeight);
+    }
+  };
+
   // Render and export the ENTIRE Passcard as a high-resolution PNG image
   const handleDownloadFullPassPng = () => {
     setDownloading(true);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    // High Resolution 300 DPI Passcard Dimensions (width: 800px, height: 1100px)
+    const isCustomArtwork = template?.useCustomArtwork && template?.cardImageUrl;
+
+    if (isCustomArtwork) {
+      const artImg = new Image();
+      artImg.crossOrigin = 'anonymous';
+      artImg.src = template.cardImageUrl;
+
+      artImg.onload = () => {
+        canvas.width = artImg.naturalWidth || 800;
+        canvas.height = artImg.naturalHeight || 500;
+
+        // Draw custom artwork background
+        ctx.drawImage(artImg, 0, 0, canvas.width, canvas.height);
+
+        // Dark gradient overlay for text readability
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, 'rgba(3, 7, 18, 0.4)');
+        gradient.addColorStop(1, 'rgba(3, 7, 18, 0.7)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Tier Badge
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.beginPath();
+        ctx.roundRect(canvas.width - 240, 40, 200, 50, 25);
+        ctx.fill();
+
+        ctx.font = 'bold 22px Inter, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText(attendee.tier, canvas.width - 140, 73);
+        ctx.textAlign = 'left';
+
+        // Draw Attendee Name
+        ctx.font = 'bold 44px Inter, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(attendee.name, 50, canvas.height - 120);
+
+        if (attendee.company) {
+          ctx.font = 'bold 26px Inter, sans-serif';
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText(`🏢 ${attendee.company}`, 50, canvas.height - 75);
+        }
+
+        ctx.font = 'bold 24px JetBrains Mono, monospace';
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillText(`ID: ${delegateIdText}`, 50, canvas.height - 35);
+
+        // Draw QR Code
+        if (qrDataUrl) {
+          const qrImg = new Image();
+          qrImg.src = qrDataUrl;
+          qrImg.onload = () => {
+            const qrSize = Math.round(canvas.height * 0.35);
+            const qrX = canvas.width - qrSize - 40;
+            const qrY = canvas.height - qrSize - 40;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(qrX, qrY, qrSize, qrSize, 20);
+            ctx.fill();
+
+            ctx.drawImage(qrImg, qrX + 10, qrY + 10, qrSize - 20, qrSize - 20);
+
+            const link = document.createElement('a');
+            link.download = `${delegateIdText}_${attendee.name.replace(/\s+/g, '_')}_CustomPassCard.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            setDownloading(false);
+          };
+        } else {
+          const link = document.createElement('a');
+          link.download = `${delegateIdText}_${attendee.name.replace(/\s+/g, '_')}_CustomPassCard.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          setDownloading(false);
+        }
+      };
+      return;
+    }
+
+    // High Resolution 300 DPI Standard Passcard Dimensions
     canvas.width = 800;
     canvas.height = 1100;
 
@@ -123,7 +212,6 @@ export default function DigitalTicketModal({ passData, onClose }) {
     const qrImg = new Image();
     qrImg.src = qrDataUrl;
     qrImg.onload = () => {
-      // White QR Canvas Box
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.roundRect(200, 470, 400, 400, 24);
@@ -131,7 +219,6 @@ export default function DigitalTicketModal({ passData, onClose }) {
 
       ctx.drawImage(qrImg, 220, 490, 360, 360);
 
-      // Delegate ID under QR
       ctx.font = 'bold 26px JetBrains Mono, monospace';
       ctx.fillStyle = '#f59e0b';
       ctx.textAlign = 'center';
@@ -148,7 +235,6 @@ export default function DigitalTicketModal({ passData, onClose }) {
       ctx.textAlign = 'center';
       ctx.fillText(template?.footerNote || 'Present this pass at designated gate entrance. Non-transferable.', 400, 1040);
 
-      // Trigger Download
       const link = document.createElement('a');
       link.download = `${delegateIdText}_${attendee.name.replace(/\s+/g, '_')}_WholePassCard.png`;
       link.href = canvas.toDataURL('image/png');
@@ -161,6 +247,8 @@ export default function DigitalTicketModal({ passData, onClose }) {
     navigator.clipboard.writeText(window.location.origin + `?ticket=${attendee.id}`);
     alert('🔗 Digital Ticket Link copied to clipboard!');
   };
+
+  const isCustomArtwork = template?.useCustomArtwork && template?.cardImageUrl;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -177,85 +265,120 @@ export default function DigitalTicketModal({ passData, onClose }) {
             <div>
               <h3 className="text-base font-bold">Executive Digital Attendee Pass</h3>
               <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Clean, color-coded pass card with encrypted QR & Delegate ID
+                {isCustomArtwork ? 'Custom Design Artwork Pass' : 'Clean, color-coded pass card with encrypted QR & Delegate ID'}
               </p>
             </div>
           </div>
           <button onClick={onClose} className="font-bold text-lg text-slate-400 hover:text-slate-200">✕</button>
         </div>
 
-        {/* Clean Executive Ticket Pass Card Container */}
+        {/* Pass Card Container */}
         <div 
           ref={cardRef}
-          style={{ backgroundColor: template?.cardBgColor || '#0f172a' }}
-          className="rounded-3xl border border-slate-700 shadow-2xl overflow-hidden text-white"
+          style={{ 
+            backgroundColor: template?.cardBgColor || '#0f172a',
+            aspectRatio: isCustomArtwork ? `${artworkAspectRatio}` : 'auto'
+          }}
+          className="relative rounded-3xl border border-slate-700 shadow-2xl overflow-hidden text-white transition-all"
         >
-          {/* Header Banner with Access Level Color */}
-          <div 
-            style={{ backgroundColor: tierColor }}
-            className="p-5 flex items-center justify-between transition-colors duration-300 shadow-md"
-          >
-            <div>
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-white/80">OFFICIAL EVENT PASS</span>
-              <h4 className="text-base font-extrabold text-white leading-snug">{template?.headerTitle || event?.name}</h4>
-            </div>
-            <span className="text-xs px-3.5 py-1 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
-              {attendee.tier}
-            </span>
-          </div>
+          {isCustomArtwork ? (
+            /* Custom Artwork Pass Display */
+            <div className="relative w-full h-full min-h-[260px]">
+              <img 
+                src={template.cardImageUrl} 
+                alt="Custom Pass Artwork" 
+                onLoad={handleImageLoad}
+                className="w-full h-full object-cover"
+              />
 
-          {/* Card Body & QR Section */}
-          <div className="p-6 space-y-6">
-            
-            {/* Delegate Info */}
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ATTENDEE DELEGATE</span>
-                <h3 className="text-2xl font-extrabold text-white">{attendee.name}</h3>
-                {template?.showCompany !== false && attendee.company && (
-                  <div className="text-sm text-cyan-400 font-bold flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4" />
-                    <span>{attendee.company}</span>
+              <div className="absolute inset-0 p-5 flex flex-col justify-between bg-slate-950/40 backdrop-blur-[1px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs px-3.5 py-1 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
+                    {attendee.tier}
+                  </span>
+                  {template?.showDelegateId !== false && (
+                    <span className="text-xs font-mono font-extrabold text-amber-300 bg-black/70 px-3 py-1 rounded-xl border border-amber-500/40 shadow">
+                      {delegateIdText}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-extrabold text-white leading-tight">{attendee.name}</h3>
+                    {template?.showCompany !== false && attendee.company && (
+                      <div className="text-xs text-cyan-300 font-bold mt-0.5">{attendee.company}</div>
+                    )}
                   </div>
-                )}
-                {template?.showContactInfo && (
-                  <div className="text-xs text-slate-400 mt-1">{attendee.email} • {attendee.phone}</div>
-                )}
-              </div>
 
-              {/* Delegate ID Badge */}
-              <div className="bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl text-center flex flex-col items-center shadow-inner">
-                <span className="text-[9px] uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1">
-                  <Hash className="w-3 h-3" /> DELEGATE ID
+                  <div className="bg-white p-2 rounded-2xl shadow-2xl border border-slate-300 flex-shrink-0">
+                    <img src={qrDataUrl} alt="QR Code" className="w-24 h-24 object-contain" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Standard Executive Pass Display */
+            <>
+              <div 
+                style={{ backgroundColor: tierColor }}
+                className="p-5 flex items-center justify-between transition-colors duration-300 shadow-md"
+              >
+                <div>
+                  <span className="text-[10px] font-extrabold tracking-widest uppercase text-white/80">OFFICIAL EVENT PASS</span>
+                  <h4 className="text-base font-extrabold text-white leading-snug">{template?.headerTitle || event?.name}</h4>
+                </div>
+                <span className="text-xs px-3.5 py-1 rounded-full font-bold bg-white/20 backdrop-blur border border-white/30 text-white shadow">
+                  {attendee.tier}
                 </span>
-                <span className="text-xs font-mono font-extrabold text-amber-300">{delegateIdText}</span>
-              </div>
-            </div>
-
-            {/* QR Code & Delegate ID Container */}
-            <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col items-center justify-center space-y-3 shadow-inner">
-              <div className="bg-white p-3 rounded-2xl shadow-xl">
-                <img src={qrDataUrl} alt="Encrypted Event QR Code" className="w-44 h-44 object-contain" />
-              </div>
-              
-              {/* Highlighted Delegate ID Number */}
-              <div className="flex items-center space-x-2 bg-indigo-950/60 px-4 py-1.5 rounded-xl border border-indigo-500/30 text-xs">
-                <span className="text-slate-400 font-medium">Delegate ID:</span>
-                <span className="font-mono font-extrabold text-amber-400 text-sm tracking-wider">{delegateIdText}</span>
               </div>
 
-              <div className="text-[11px] text-slate-400 text-center flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span>AES-256 Encrypted & Signed (v{attendee.qrVersion || 1})</span>
+              <div className="p-6 space-y-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ATTENDEE DELEGATE</span>
+                    <h3 className="text-2xl font-extrabold text-white">{attendee.name}</h3>
+                    {template?.showCompany !== false && attendee.company && (
+                      <div className="text-sm text-cyan-400 font-bold flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4" />
+                        <span>{attendee.company}</span>
+                      </div>
+                    )}
+                    {template?.showContactInfo && (
+                      <div className="text-xs text-slate-400 mt-1">{attendee.email} • {attendee.phone}</div>
+                    )}
+                  </div>
+
+                  <div className="bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl text-center flex flex-col items-center shadow-inner">
+                    <span className="text-[9px] uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1">
+                      <Hash className="w-3 h-3" /> DELEGATE ID
+                    </span>
+                    <span className="text-xs font-mono font-extrabold text-amber-300">{delegateIdText}</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col items-center justify-center space-y-3 shadow-inner">
+                  <div className="bg-white p-3 rounded-2xl shadow-xl">
+                    <img src={qrDataUrl} alt="Encrypted Event QR Code" className="w-44 h-44 object-contain" />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 bg-indigo-950/60 px-4 py-1.5 rounded-xl border border-indigo-500/30 text-xs">
+                    <span className="text-slate-400 font-medium">Delegate ID:</span>
+                    <span className="font-mono font-extrabold text-amber-400 text-sm tracking-wider">{delegateIdText}</span>
+                  </div>
+
+                  <div className="text-[11px] text-slate-400 text-center flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>AES-256 Encrypted & Signed (v{attendee.qrVersion || 1})</span>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-slate-400 text-center border-t border-slate-800 pt-3">
+                  {template?.footerNote || 'Present this pass at designated gate entrance. Non-transferable.'}
+                </div>
               </div>
-            </div>
-
-            {/* Footer Rules */}
-            <div className="text-[10px] text-slate-400 text-center border-t border-slate-800 pt-3">
-              {template?.footerNote || 'Present this pass at designated gate entrance. Non-transferable.'}
-            </div>
-
-          </div>
+            </>
+          )}
         </div>
 
         {/* Action Controls */}

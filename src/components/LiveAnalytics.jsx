@@ -137,7 +137,7 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
           <div className="flex items-center justify-between border-b pb-3 border-slate-800">
             <div className="flex items-center space-x-2">
               <BarChart3 className="w-5 h-5 text-[#1698E1]" />
-              <h3 className="text-base font-extrabold">Live Gate Stations Throughput & Allocated Staff</h3>
+              <h3 className="text-base font-extrabold">Live Gate Stations Throughput</h3>
             </div>
             <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[#1698E1]/15 text-[#1698E1] uppercase border border-[#1698E1]/30">
               Real-time
@@ -151,7 +151,7 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
               const attendantsList = g.activeAttendantsList || [];
 
               return (
-                <div key={g.gateId} className={`p-4 rounded-2xl border space-y-3 ${
+                <div key={g.gateId} className={`p-4 rounded-2xl border space-y-2.5 ${
                   isDark ? 'bg-[#030712] border-slate-800' : 'bg-slate-50 border-slate-200'
                 }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 font-bold">
@@ -160,7 +160,7 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
                       <span>{g.gateName}</span>
                     </span>
                     <span className="font-mono text-[#01BD9B] font-extrabold text-xs">
-                      {g.checkedInCount} Scanned Passes ({g.activeAttendantsCount} Staff Assigned)
+                      {g.checkedInCount} Scanned
                     </span>
                   </div>
 
@@ -172,34 +172,22 @@ export default function LiveAnalytics({ analytics, auditLogs, onExportCsv }) {
                     ></div>
                   </div>
 
-                  {/* Visible Attached Gate Staff Members */}
-                  <div className="pt-2 border-t border-slate-800/40">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-2">
-                      Assigned Gate Attendants:
-                    </span>
-
+                  {/* Minimal Assigned Staff Names */}
+                  <div className="flex items-center space-x-2 pt-1">
+                    <span className="text-[11px] font-semibold text-slate-500">Staff:</span>
                     {attendantsList.length === 0 ? (
-                      <div className="text-[11px] text-amber-500 italic font-semibold flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                        <span>No attendant currently allocated to this gate station</span>
-                      </div>
+                      <span className="text-[11px] text-amber-500 italic font-medium">Unassigned</span>
                     ) : (
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {attendantsList.map(att => (
-                          <div 
-                            key={att.id || att.name} 
-                            className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                              isDark ? 'bg-[#222222] border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800 shadow-sm'
+                          <span 
+                            key={att.id || att.name}
+                            className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md border ${
+                              isDark ? 'bg-[#222222] border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'
                             }`}
                           >
-                            <img 
-                              src={att.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'} 
-                              alt={att.name} 
-                              className="w-5 h-5 rounded-full border border-[#1698E1] object-cover"
-                            />
-                            <span>{att.name}</span>
-                            <span className="w-2 h-2 rounded-full bg-[#01BD9B] animate-pulse"></span>
-                          </div>
+                            {att.name}
+                          </span>
                         ))}
                       </div>
                     )}

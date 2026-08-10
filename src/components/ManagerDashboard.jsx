@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart2, 
   Users, 
@@ -17,7 +17,10 @@ import {
   Filter,
   Building2,
   Edit3,
-  FileCheck
+  FileCheck,
+  ChevronDown,
+  MoreVertical,
+  Hash
 } from 'lucide-react';
 import LiveAnalytics from './LiveAnalytics';
 import TicketTemplateEditor from './TicketTemplateEditor';
@@ -52,6 +55,20 @@ export default function ManagerDashboard({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTier, setSelectedTier] = useState('ALL');
+  const [activeDropdownId, setActiveDropdownId] = useState(null);
+
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setActiveDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const tiersList = Array.from(new Set(attendees.map(a => a.tier)));
 
@@ -147,68 +164,115 @@ export default function ManagerDashboard({
                     </td>
                   </tr>
                 ) : (
-                  filteredAttendees.map(att => (
-                    <tr key={att.id} className="hover:bg-indigo-500/5 transition-colors">
-                      <td className="p-3.5">
-                        <div className="font-bold text-white">{att.name}</div>
-                        <div className="font-mono text-[11px] text-amber-400 font-bold">{att.delegateId || att.id}</div>
-                      </td>
-                      <td className="p-3.5 text-indigo-400 font-medium">
-                        <span className="flex items-center gap-1">
-                          <Building2 className="w-3 h-3 text-slate-400" />
-                          {att.company || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-slate-400">
-                        <div>{att.email}</div>
-                        <div className="text-[11px]">{att.phone || 'No Phone'}</div>
-                      </td>
-                      <td className="p-3.5 font-semibold text-cyan-400">{att.tier}</td>
-                      <td className="p-3.5 font-mono text-indigo-300">v{att.qrVersion || 1}</td>
-                      <td className="p-3.5">
-                        {att.status === 'CHECKED_IN' ? (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Checked In
+                  filteredAttendees.map(att => {
+                    const isDropdownOpen = activeDropdownId === att.id;
+                    return (
+                      <tr key={att.id} className="hover:bg-indigo-500/5 transition-colors">
+                        <td className="p-3.5">
+                          <div className="font-bold text-white">{att.name}</div>
+                          <div className="font-mono text-[11px] text-amber-400 font-bold flex items-center gap-0.5">
+                            <Hash className="w-2.5 h-2.5" /> {att.delegateId || att.id}
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-indigo-400 font-medium">
+                          <span className="flex items-center gap-1">
+                            <Building2 className="w-3 h-3 text-slate-400" />
+                            {att.company || 'N/A'}
                           </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold inline-flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-indigo-400" /> Issued
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3.5 text-right space-x-1.5">
-                        <button
-                          onClick={() => onOpenEditAttendee(att)}
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[11px] border border-slate-700 inline-flex items-center gap-1"
-                          title="Edit Attendee Record"
-                        >
-                          <Edit3 className="w-3 h-3 text-amber-400" /> Edit
-                        </button>
+                        </td>
+                        <td className="p-3.5 text-slate-400">
+                          <div>{att.email}</div>
+                          <div className="text-[11px]">{att.phone || 'No Phone'}</div>
+                        </td>
+                        <td className="p-3.5 font-semibold text-cyan-400">{att.tier}</td>
+                        <td className="p-3.5 font-mono text-indigo-300">v{att.qrVersion || 1}</td>
+                        <td className="p-3.5">
+                          {att.status === 'CHECKED_IN' ? (
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Checked In
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold inline-flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-indigo-400" /> Issued
+                            </span>
+                          )}
+                        </td>
+                        
+                        {/* Consolidated Actions Dropdown Menu */}
+                        <td className="p-3.5 text-right relative">
+                          <div className="inline-block text-left" ref={isDropdownOpen ? dropdownRef : null}>
+                            <button
+                              type="button"
+                              onClick={() => setActiveDropdownId(isDropdownOpen ? null : att.id)}
+                              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+                                isDropdownOpen 
+                                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/20'
+                                  : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
+                              }`}
+                            >
+                              <span>Actions</span>
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
 
-                        <button
-                          onClick={() => onOpenCustomCardModal(att)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold text-[11px] border border-amber-500/40 inline-flex items-center gap-1"
-                          title="View, Print & Download Custom PDF Invitation Card"
-                        >
-                          <FileCheck className="w-3 h-3 text-amber-400" /> PDF Card
-                        </button>
+                            {/* Dropdown Popover Menu */}
+                            {isDropdownOpen && (
+                              <div className="absolute right-3 mt-1.5 w-48 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl z-50 overflow-hidden text-xs py-1.5 divide-y divide-slate-800/60 animate-in fade-in duration-150">
+                                
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => {
+                                      setActiveDropdownId(null);
+                                      onOpenEditAttendee(att);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-slate-800 font-semibold flex items-center gap-2"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Edit Record</span>
+                                  </button>
 
-                        <button
-                          onClick={() => onOpenPassModal(att.id)}
-                          className="px-2.5 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 font-semibold text-[11px] border border-indigo-500/40 inline-flex items-center gap-1"
-                        >
-                          <QrCode className="w-3 h-3" /> Pass
-                        </button>
+                                  <button
+                                    onClick={() => {
+                                      setActiveDropdownId(null);
+                                      onOpenCustomCardModal(att);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-left text-amber-300 hover:text-amber-200 hover:bg-slate-800 font-semibold flex items-center gap-2"
+                                  >
+                                    <FileCheck className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>View/Export PDF Card</span>
+                                  </button>
 
-                        <button
-                          onClick={() => onOpenReissueModal(att)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold text-[11px] border border-rose-500/40 inline-flex items-center gap-1"
-                        >
-                          <RefreshCw className="w-3 h-3" /> Re-Issue
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                                  <button
+                                    onClick={() => {
+                                      setActiveDropdownId(null);
+                                      onOpenPassModal(att.id);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-left text-indigo-300 hover:text-indigo-200 hover:bg-slate-800 font-semibold flex items-center gap-2"
+                                  >
+                                    <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+                                    <span>Digital Pass Card</span>
+                                  </button>
+                                </div>
+
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => {
+                                      setActiveDropdownId(null);
+                                      onOpenReissueModal(att);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-left text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 font-bold flex items-center gap-2"
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5 text-rose-400" />
+                                    <span>Re-Issue QR Code</span>
+                                  </button>
+                                </div>
+
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
